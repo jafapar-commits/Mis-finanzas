@@ -3,14 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas PWA</title>
+    <title>Mis Finanzas Pro</title>
     
-    <!-- Configuración para que actúe como App Nativa en iOS/iPadOS -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Finanzas">
     
-    <!-- Librerías Externas desde CDN (Base de datos y Gráficos) -->
     <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -21,114 +18,211 @@
             --text-main: #000000;
             --accent: #007aff;
             --success: #34c759;
+            --border: #d1d1d6;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
-        /* Estructura SplitView para iPad */
-        .sidebar { width: 320px; background: var(--panel-bg); border-right: 1px solid #d1d1d6; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        /* SplitView para iPad */
+        .sidebar { width: 340px; background: var(--panel-bg); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
         .main-content { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 25px; }
 
-        h2 { font-size: 22px; font-weight: 700; }
-        .form-group { display: flex; flex-direction: column; gap: 8px; }
-        label { font-size: 13px; text-transform: uppercase; color: #8e8e93; font-weight: 600; }
-        input, select { padding: 12px; border: 1px solid #d1d1d6; border-radius: 10px; font-size: 16px; background: #f2f2f7; border: none; }
+        h2 { font-size: 20px; font-weight: 700; }
+        h3 { font-size: 16px; color: #8e8e93; margin-top: 10px; }
         
-        button { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        label { font-size: 12px; text-transform: uppercase; color: #8e8e93; font-weight: 600; }
+        input, select { padding: 12px; border-radius: 10px; font-size: 16px; background: #f2f2f7; border: none; width: 100%; }
+        
+        button { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; }
         button:active { opacity: 0.7; }
+        .btn-secondary { background: #e5e5ea; color: var(--text-main); padding: 8px 12px; font-size: 14px; }
 
-        /* Cuadro de Mando */
-        .dashboard-card { background: var(--panel-bg); padding: 24px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .balance-title { font-size: 14px; color: #8e8e93; }
-        .balance-amount { font-size: 36px; font-weight: 700; color: var(--success); margin-top: 5px; }
-        .chart-container { width: 160px; height: 160px; }
+        /* Cuadro de mando superior */
+        .dashboard-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .dashboard-card { background: var(--panel-bg); padding: 20px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+        .balance-amount { font-size: 32px; font-weight: 700; color: var(--text-main); margin-top: 5px; }
+        .chart-container-donut { width: 130px; height: 130px; }
+        
+        /* Gráfico Histórico Grande */
+        .history-card { background: var(--panel-bg); padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
+        .chart-container-line { width: 100%; height: 220px; position: relative; }
 
-        /* Lista de activos */
-        .assets-list { background: var(--panel-bg); border-radius: 16px; padding: 10px 20px; list-style: none; }
+        /* Listas */
+        .assets-list { background: var(--panel-bg); border-radius: 16px; padding: 0 20px; list-style: none; }
         .asset-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #e5e5ea; }
         .asset-item:last-child { border-bottom: none; }
         .asset-info name { font-weight: 600; display: block; }
         .asset-info type { font-size: 13px; color: #8e8e93; }
-        .asset-value { font-weight: 600; display: flex; align-items: center; gap: 15px; }
-        .delete-btn { color: #ff3b30; background: none; padding: 5px; font-size: 14px; }
+        .asset-actions { display: flex; align-items: center; gap: 15px; }
+        .asset-value { font-weight: 600; font-size: 16px; }
+        
+        .delete-btn { color: #ff3b30; background: none; padding: 5px; font-size: 14px; font-weight: normal; }
+        .update-input { width: 90px; padding: 6px; font-size: 14px; text-align: right; }
     </style>
 </head>
 <body>
 
-    <!-- BARRA LATERAL: Formulario -->
+    <!-- BARRA LATERAL: Filtro Mensual y Creación -->
     <div class="sidebar">
-        <h2>Añadir Activo</h2>
+        <h2>Control Mensual</h2>
         <div class="form-group">
-            <label>Nombre</label>
-            <input type="text" id="nombre" placeholder="ej. Cuenta Santander">
+            <label>Mes de Trabajo</label>
+            <!-- Selector para cambiar de mes y ver datos pasados o presentes -->
+            <input type="month" id="filtroMes" onchange="actualizarUI()">
+        </div>
+        
+        <hr style="border: 0; border-top: 1px solid var(--border); margin: 10px 0;">
+
+        <h2>Añadir Nuevo Activo</h2>
+        <div class="form-group">
+            <label>Nombre del Activo</label>
+            <input type="text" id="nombre" placeholder="ej. Cuenta Principal">
         </div>
         <div class="form-group">
             <label>Tipo</label>
             <select id="tipo">
-                <option value="Banco">Banco</option>
-                <option value="Acciones">Acciones</option>
-                <option value="Cripto">Cripto</option>
-                <option value="Efectivo">Efectivo</option>
+                <option value="Banco">Banco (Liquidez)</option>
+                <option value="Acciones">Acciones / Fondos</option>
+                <option value="Cripto">Criptomonedas</option>
+                <option value="Efectivo">Otros / Efectivo</option>
             </select>
         </div>
         <div class="form-group">
-            <label>Balance (€)</label>
+            <label>Valor Inicial (€)</label>
             <input type="number" id="balance" placeholder="0.00" step="0.01">
         </div>
-        <button onclick="guardarActivo()">Guardar Activo</button>
+        <button onclick="crearActivo()">Dar de Alta Activo</button>
     </div>
 
-    <!-- CONTENIDO PRINCIPAL: Cuadro de Mando -->
+    <!-- CONTENIDO PRINCIPAL -->
     <div class="main-content">
-        <h2>Mi Cuadro de Mando</h2>
+        <h2 id="tituloVista">Cuadro de Mando</h2>
         
-        <div class="dashboard-card">
-            <div>
-                <div class="balance-title">Patrimonio Neto Total</div>
-                <div class="balance-amount" id="totalNeto">0,00 €</div>
+        <div class="dashboard-row">
+            <!-- Tarjeta de patrimonio de este mes -->
+            <div class="dashboard-card">
+                <div>
+                    <div style="font-size: 14px; color: #8e8e93; font-weight: 600;">PATRIMONIO NETO EN ESTE MES</div>
+                    <div class="balance-amount" id="totalNeto">0,00 €</div>
+                    <h3 id="subtituloCambio">Actualiza tus saldos a la derecha</h3>
+                </div>
+                <div class="chart-container-donut">
+                    <canvas id="donutChart"></canvas>
+                </div>
             </div>
-            <div class="chart-container">
-                <canvas id="donutChart"></canvas>
+
+            <!-- Gráfico de Líneas Evolución Temporal -->
+            <div class="history-card">
+                <div style="font-size: 14px; color: #8e8e93; font-weight: 600; margin-bottom: 10px;">EVOLUCIÓN HISTÓRICA GLOBAL</div>
+                <div class="chart-container-line">
+                    <canvas id="lineChart"></canvas>
+                </div>
             </div>
         </div>
 
-        <h2>Tus Cuentas y Activos</h2>
+        <h2>Estado de tus Activos (Modifica el valor aquí si cambia)</h2>
         <ul class="assets-list" id="listaActivos">
-            <!-- Los elementos se cargan dinámicamente -->
+            <!-- Cargado dinámicamente -->
         </ul>
     </div>
 
     <script>
-        // 1. INICIALIZAR BASE DE DATOS LOCAL (IndexedDB vía Dexie)
-        const db = new Dexie("FinanzasDB");
-        db.version(1).stores({
-            activos: '++id, nombre, tipo, balance'
+        // Establecer por defecto el mes actual en el selector del iPad
+        const hoy = new Date();
+        const mesActualString = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+        document.getElementById('filtroMes').value = mesActualString;
+
+        // 1. BASE DE DATOS (Guardamos activos fijos e historial por separado)
+        const db = new Dexie("FinanzasProDB");
+        db.version(2).stores({
+            activos: '++id, nombre, tipo',
+            historial: '++id, activoId, mes, valor' // "mes" se guardará como "YYYY-MM"
         });
 
-        let miGrafico = null;
-
-        // Formateador de moneda Euro
+        let donutChartInstance = null;
+        let lineChartInstance = null;
         const formatter = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 
-        // 2. RENDERIZAR INTERFAZ Y GRÁFICOS
-        async function actualizarUI() {
-            const activos = await db.activos.toArray();
-            
-            // Calcular total
-            const total = activos.reduce((sum, item) => sum + parseFloat(item.balance), 0);
-            document.getElementById('totalNeto').innerText = formatter.format(total);
+        // 2. CREAR UN NUEVO ACTIVO
+        async function crearActivo() {
+            const nombre = document.getElementById('nombre').value;
+            const tipo = document.getElementById('tipo').value;
+            const valorInicial = parseFloat(document.getElementById('balance').value);
+            const mesSeleccionado = document.getElementById('filtroMes').value;
 
-            // Listar Activos en el HTML
-            const lista = document.getElementById('listaActivos');
-            lista.innerHTML = "";
+            if(!nombre || isNaN(valorInicial)) return alert("Rellena el nombre y el valor inicial.");
+
+            // Insertar la definición del activo
+            const idActivo = await db.activos.add({ nombre, tipo });
             
-            // Agrupar datos para el gráfico
+            // Insertar su primer valor en el mes seleccionado
+            await db.historial.add({ activoId: idActivo, mes: mesSeleccionado, valor: valorInicial });
+
+            document.getElementById('nombre').value = "";
+            document.getElementById('balance').value = "";
+            actualizarUI();
+        }
+
+        // 3. ACTUALIZAR EL VALOR SI CAMBIA DURANTE EL MES
+        async function modificarValorExistente(activoId, nuevoValor) {
+            const mesSeleccionado = document.getElementById('filtroMes').value;
+            if(isNaN(nuevoValor)) return;
+
+            // Buscamos si ya hay un registro para este activo en este mes específico
+            const registroMes = await db.historial.where({ activoId: activoId, mes: mesSeleccionado }).first();
+
+            if (registroMes) {
+                // Si ya existía dato este mes, actualizamos el valor en tiempo real
+                await db.historial.update(registroMes.id, { valor: nuevoValor });
+            } else {
+                // Si es un mes nuevo donde este activo no tenía registro, creamos una "foto" con el nuevo valor
+                await db.historial.add({ activoId: activoId, mes: mesSeleccionado, valor: nuevoValor });
+            }
+            actualizarUI();
+        }
+
+        // 4. ELIMINAR ACTIVO POR COMPLETO
+        async function borrarActivo(id) {
+            if(confirm("¿Seguro que quieres eliminar este activo y todo su historial?")) {
+                await db.activos.delete(id);
+                await db.historial.where('activoId').equals(id).delete();
+                actualizarUI();
+            }
+        }
+
+        // 5. RENDERIZACIÓN GENERAL DE LA INTERFAZ
+        async function actualizarUI() {
+            const mesSeleccionado = document.getElementById('filtroMes').value;
+            const [ano, mes] = mesSeleccionado.split("-");
+            
+            // Ajustar títulos dinámicos
+            const mesesNombres = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+            document.getElementById('tituloVista').innerText = `Cuadro de Mando — ${mesesNombres[parseInt(mes)-1]} ${ano}`;
+
+            const todosLosActivos = await db.activos.toArray();
+            const listaHTML = document.getElementById('listaActivos');
+            listaHTML.innerHTML = "";
+
+            let totalMes = 0;
             const totalesPorTipo = { Banco: 0, Acciones: 0, Cripto: 0, Efectivo: 0 };
 
-            activos.forEach(activo => {
-                totalesPorTipo[activo.tipo] += parseFloat(activo.balance);
+            // Procesar cada activo
+            for (let activo of todosLosActivos) {
+                // Buscar el valor de este activo en el mes seleccionado
+                let datosMes = await db.historial.where({ activoId: activo.id, mes: mesSeleccionado }).first();
+                
+                // Si el mes no tiene dato, arrastra automáticamente el valor del mes anterior disponible
+                if (!datosMes) {
+                    const ultimoHistorico = await db.historial.where('activoId').equals(activo.id).and(h => h.mes < mesSeleccionado).reverse().sortBy('mes');
+                    datosMes = ultimoHistorico[0] || { valor: 0 };
+                }
 
+                totalMes += datosMes.valor;
+                totalesPorTipo[activo.tipo] += datosMes.valor;
+
+                // Pintar línea en la lista
                 const li = document.createElement('li');
                 li.className = 'asset-item';
                 li.innerHTML = `
@@ -136,67 +230,93 @@
                         <name>${activo.nombre}</name>
                         <type>${activo.tipo}</type>
                     </div>
-                    <div class="asset-value">
-                        <span>${formatter.format(activo.balance)}</span>
-                        <button class="delete-btn" onclick="borrarActivo(${activo.id})">Eliminar</button>
+                    <div class="asset-actions">
+                        <!-- Input en vivo para cambiar el precio actual en cualquier momento -->
+                        <span style="font-size:12px; color:#8e8e93;">Valor este mes:</span>
+                        <input type="number" class="update-input" value="${datosMes.valor.toFixed(2)}" 
+                               onchange="modificarValorExistente(${activo.id}, parseFloat(this.value))" step="0.01">
+                        <span style="font-weight:600;">€</span>
+                        <button class="delete-btn" onclick="borrarActivo(${activo.id})">✕</button>
                     </div>
                 `;
-                lista.appendChild(li);
-            });
+                listaHTML.appendChild(li);
+            }
 
-            actualizarGrafico(totalesPorTipo);
+            document.getElementById('totalNeto').innerText = formatter.format(totalMes);
+
+            // Pintar los dos gráficos
+            renderDonut(totalesPorTipo);
+            await renderEvolucionTemporal();
         }
 
-        // 3. LÓGICA DEL GRÁFICO (Chart.js)
-        function actualizarGrafico(datos) {
+        // 6. GRÁFICO DE DISTRIBUCIÓN (DONUT)
+        function renderDonut(datos) {
             const ctx = document.getElementById('donutChart').getContext('2d');
             const labels = Object.keys(datos).filter(key => datos[key] > 0);
             const valores = labels.map(key => datos[key]);
 
-            if (miGrafico) { miGrafico.destroy(); }
-
+            if (donutChartInstance) { donutChartInstance.destroy(); }
             if (valores.length === 0) return;
 
-            miGrafico = new Chart(ctx, {
+            donutChartInstance = new Chart(ctx, {
                 type: 'doughnut',
                 data: {
                     labels: labels,
+                    datasets: [{ data: valores, backgroundColor: ['#007aff', '#ff9500', '#5856d6', '#34c759'], borderWidth: 0 }]
+                },
+                options: { plugins: { legend: { display: false } }, cutout: '72%' }
+            });
+        }
+
+        // 7. GRÁFICO DE EVOLUCIÓN MENSUAL (LÍNEAS)
+        async function renderEvolucionTemporal() {
+            const ctx = document.getElementById('lineChart').getContext('2d');
+            const todoElHistorial = await db.historial.toArray();
+            
+            // Agrupar los totales globales de la suma de activos indexados por mes
+            const mesesMap = {};
+            
+            // Para asegurar un cálculo real, agrupamos por mes de forma limpia
+            todoElHistorial.forEach(h => {
+                if(!mesesMap[h.mes]) mesesMap[h.mes] = {};
+                mesesMap[h.mes][h.activoId] = h.valor;
+            });
+
+            // Ordenamos cronológicamente los meses que tienen registros
+            const mesesOrdenados = Object.keys(mesesMap).sort();
+            const sumasGlobalesPorMes = mesesOrdenados.map(mes => {
+                return Object.values(mesesMap[mes]).reduce((a, b) => a + b, 0);
+            });
+
+            if (lineChartInstance) { lineChartInstance.destroy(); }
+
+            lineChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: mesesOrdenados, // Eje X: Meses (Ej: 2026-04, 2026-05)
                     datasets: [{
-                        data: valores,
-                        backgroundColor: ['#007aff', '#ff9500', '#5856d6', '#34c759'],
-                        borderWidth: 0
+                        label: 'Patrimonio Total',
+                        data: sumasGlobalesPorMes, // Eje Y: Suma total de dinero
+                        borderColor: '#007aff',
+                        backgroundColor: 'rgba(0, 122, 255, 0.08)',
+                        fill: true,
+                        tension: 0.2,
+                        borderWidth: 3
                     }]
                 },
                 options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
-                    cutout: '70%'
+                    scales: {
+                        y: { grid: { display: true, color: '#e5e5ea' } },
+                        x: { grid: { display: false } }
+                    }
                 }
             });
         }
 
-        // 4. ACCIONES DE BASE DE DATOS
-        async function guardarActivo() {
-            const nombre = document.getElementById('nombre').value;
-            const tipo = document.getElementById('tipo').value;
-            const balance = document.getElementById('balance').value;
-
-            if(!nombre || !balance) return alert("Por favor, rellena todos los campos.");
-
-            await db.activos.add({ nombre, tipo, balance: parseFloat(balance) });
-            
-            // Limpiar campos
-            document.getElementById('nombre').value = "";
-            document.getElementById('balance').value = "";
-            
-            actualizarUI();
-        }
-
-        async function borrarActivo(id) {
-            await db.activos.delete(id);
-            actualizarUI();
-        }
-
-        // Carga inicial al abrir la página
+        // Inicializar la aplicación al cargar
         actualizarUI();
     </script>
 </body>
