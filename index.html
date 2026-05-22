@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas - Dashboard Avanzado</title>
+    <title>Mis Finanzas - Dashboard Profesional Apilado</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -23,7 +23,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
-        /* Estructura iPad SplitView */
         .sidebar { width: 350px; background: var(--panel-bg); border-right: 1px solid var(--border); padding: 25px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
         .main-content { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 25px; }
 
@@ -35,14 +34,12 @@
         button { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
         button:active { opacity: 0.8; }
 
-        /* Cuadro de mando con dos gráficos en paralelo */
         .dashboard-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .card { background: var(--panel-bg); padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
         
         .total-amount { font-size: 42px; font-weight: 800; color: #1c1c1e; margin: 10px 0; }
         .chart-container { width: 100%; height: 280px; position: relative; margin-top: 15px; }
 
-        /* Lista de activos */
         .assets-list { background: var(--panel-bg); border-radius: 20px; padding: 10px 25px; list-style: none; margin-top: 10px; }
         .asset-item { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; border-bottom: 1px solid #f2f2f7; }
         .asset-item:last-child { border-bottom: none; }
@@ -107,7 +104,7 @@
             </div>
 
             <div class="card">
-                <label style="font-weight: 600; color: #8e8e93;">EVOLUCIÓN MENSUAL GLOBAL (€)</label>
+                <label style="font-weight: 600; color: #8e8e93;">EVOLUCIÓN MENSUAL POR CATEGORÍAS (€)</label>
                 <div class="chart-container">
                     <canvas id="barChart"></canvas>
                 </div>
@@ -121,6 +118,17 @@
     <script>
         const hoy = new Date();
         document.getElementById('filtroMes').value = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+
+        // Paleta de colores fija para emparejar ambos gráficos
+        const categoriasColores = {
+            "Saving account": "#4CAF50",
+            "Deposit": "#8BC34A",
+            "Letras del Tesoro": "#9E9E9E",
+            "3 Säule": "#FFC107",
+            "Stocks & ETF VT": "#2196F3",
+            "Crypto": "#FF5722",
+            "Otros": "#E91E63"
+        };
 
         const db = new Dexie("PatrimonioRealDB");
         db.version(1).stores({
@@ -174,7 +182,7 @@
             lista.innerHTML = "";
 
             let totalGlobal = 0;
-            const porCategorias = {};
+            const porCategorias = { "Saving account": 0, "Deposit": 0, "Letras del Tesoro": 0, "3 Säule": 0, "Stocks & ETF VT": 0, "Crypto": 0, "Otros": 0 };
 
             for(let a of activos) {
                 let h = await db.historial.where({ activoId: a.id, mes: mesSel }).first();
@@ -184,7 +192,7 @@
                 }
 
                 totalGlobal += h.valor;
-                porCategorias[a.tipo] = (porCategorias[a.tipo] || 0) + h.valor;
+                porCategorias[a.tipo] += h.valor;
 
                 const li = document.createElement('li');
                 li.className = 'asset-item';
@@ -209,17 +217,19 @@
             await renderBarHistorico();
         }
 
-        // 1. RENDER GRÁFICO CIRCULAR (PORCENTAJES)
         function renderPie(datos, total) {
             const ctx = document.getElementById('pieChart').getContext('2d');
-            const labels = Object.keys(datos);
-            const valores = Object.values(datos);
+            
+            // Filtrar solo categorías que tengan dinero asignado para no saturar el gráfico
+            const labelsFiltrados = Object.keys(datos).filter(k => datos[k] > 0);
+            const valoresFiltrados = labelsFiltrados.map(k => datos[k]);
+            const coloresFiltrados = labelsFiltrados.map(k => categoriasColores[k]);
 
             if(pieChartInstance) pieChartInstance.destroy();
             if(total === 0) return;
 
-            const etiquetasConPorcentaje = labels.map((label, index) => {
-                const porcentaje = ((valores[index] / total) * 100).toFixed(1);
+            const etiquetasConPorcentaje = labelsFiltrados.map(label => {
+                const porcentaje = ((datos[label] / total) * 100).toFixed(1);
                 return `${label} (${porcentaje}%)`;
             });
 
@@ -228,8 +238,8 @@
                 data: {
                     labels: etiquetasConPorcentaje,
                     datasets: [{
-                        data: valores,
-                        backgroundColor: ['#4CAF50', '#8BC34A', '#9E9E9E', '#FFC107', '#2196F3', '#FF5722', '#E91E63'],
+                        data: valoresFiltrados,
+                        backgroundColor: coloresFiltrados,
                         borderWidth: 1.5
                     }]
                 },
@@ -243,46 +253,70 @@
             });
         }
 
-        // 2. NUEVO: RENDER GRÁFICO DE BARRAS (EVOLUCIÓN MENSUAL GLOBAL)
+        // NUEVO: PROCESAMIENTO APILADO MULTICOLOR
         async function renderBarHistorico() {
             const ctx = document.getElementById('barChart').getContext('2d');
+            const todosActivos = await db.activos.toArray();
             const historialCompleto = await db.historial.toArray();
             
-            const mesesMap = {};
-            historialCompleto.forEach(h => {
-                if(!mesesMap[h.mes]) mesesMap[h.mes] = {};
-                mesesMap[h.mes][h.activoId] = h.valor;
+            // Obtener todos los meses registrados de forma ordenada
+            const mesesSet = new Set(historialCompleto.map(h => h.mes));
+            const mesesOrdenados = Array.from(mesesSet).sort();
+
+            // Estructura de datasets requerida por Chart.js para barras apiladas
+            const categoriasLista = Object.keys(categoriasColores);
+            const datasets = categoriasLista.map(cat => {
+                return {
+                    label: cat,
+                    data: [], // Aquí irá el valor de esta categoría para cada mes
+                    backgroundColor: categoriasColores[cat],
+                    borderRadius: 4
+                };
             });
 
-            const mesesOrdenados = Object.keys(mesesMap).sort();
-            const sumasPorMes = mesesOrdenados.map(mes => {
-                return Object.values(mesesMap[mes]).reduce((a, b) => a + b, 0);
-            });
+            // Rellenar la matriz de datos mes a mes, arrastrando el historial de forma lógica
+            for(let mes of mesesOrdenados) {
+                const fotoCategoriaMes = { "Saving account": 0, "Deposit": 0, "Letras del Tesoro": 0, "3 Säule": 0, "Stocks & ETF VT": 0, "Crypto": 0, "Otros": 0 };
+                
+                for(let a of todosActivos) {
+                    let h = await db.historial.where({ activoId: a.id, mes: mes }).first();
+                    if(!h) {
+                        const last = await db.historial.where('activoId').equals(a.id).and(x => x.mes < mes).reverse().sortBy('mes');
+                        h = last[0] || { valor: 0 };
+                    }
+                    fotoCategoriaMes[a.tipo] += h.valor;
+                }
+
+                // Meter el número en su dataset correspondiente
+                datasets.forEach(dataset => {
+                    dataset.data.push(fotoCategoriaMes[dataset.label]);
+                });
+            }
 
             if(barChartInstance) barChartInstance.destroy();
 
             barChartInstance = new Chart(ctx, {
-                type: 'bar', // Formato de barra nativo
+                type: 'bar',
                 data: {
                     labels: mesesOrdenados,
-                    datasets: [{
-                        label: 'Patrimonio Total',
-                        data: sumasPorMes,
-                        backgroundColor: '#007aff', // Azul iOS nativo
-                        borderRadius: 8,
-                        borderWidth: 0
-                    }]
+                    datasets: datasets // Inyecta las barras multicolores
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: { 
+                        legend: { display: false } // Ocultamos leyenda en barras para no duplicar la del gráfico circular
+                    },
                     scales: {
                         y: { 
+                            stacked: true, // ¡CLAVE! Apilar valores en el eje Y
                             grid: { color: '#e5e5ea' },
                             ticks: { font: { size: 11 } }
                         },
-                        x: { grid: { display: false } }
+                        x: { 
+                            stacked: true, // ¡CLAVE! Apilar valores en el eje X
+                            grid: { display: false } 
+                        }
                     }
                 }
             });
