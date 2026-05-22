@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas - Dashboard Corregido</title>
+    <title>Mis Finanzas - Dashboard Avanzado</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -23,6 +23,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
+        /* Estructura iPad SplitView */
         .sidebar { width: 350px; background: var(--panel-bg); border-right: 1px solid var(--border); padding: 25px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
         .main-content { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 25px; }
 
@@ -34,10 +35,14 @@
         button { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
         button:active { opacity: 0.8; }
 
-        .card { background: var(--panel-bg); padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
+        /* Cuadro de mando con dos gráficos en paralelo */
+        .dashboard-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: var(--panel-bg); padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
+        
         .total-amount { font-size: 42px; font-weight: 800; color: #1c1c1e; margin: 10px 0; }
-        .chart-container-big { width: 100%; height: 360px; position: relative; display: flex; justify-content: center; }
+        .chart-container { width: 100%; height: 280px; position: relative; margin-top: 15px; }
 
+        /* Lista de activos */
         .assets-list { background: var(--panel-bg); border-radius: 20px; padding: 10px 25px; list-style: none; margin-top: 10px; }
         .asset-item { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; border-bottom: 1px solid #f2f2f7; }
         .asset-item:last-child { border-bottom: none; }
@@ -93,10 +98,19 @@
             <div class="total-amount" id="totalNeto">0,00 €</div>
         </header>
 
-        <div class="card">
-            <label style="margin-bottom: 15px; display: block;">Distribución de Activos (%)</label>
-            <div class="chart-container-big">
-                <canvas id="pieChart"></canvas>
+        <div class="dashboard-row">
+            <div class="card">
+                <label style="font-weight: 600; color: #8e8e93;">DISTRIBUCIÓN ACTUAL (%)</label>
+                <div class="chart-container">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <label style="font-weight: 600; color: #8e8e93;">EVOLUCIÓN MENSUAL GLOBAL (€)</label>
+                <div class="chart-container">
+                    <canvas id="barChart"></canvas>
+                </div>
             </div>
         </div>
 
@@ -114,7 +128,8 @@
             historial: '++id, activoId, mes, valor'
         });
 
-        let chartInstance = null;
+        let pieChartInstance = null;
+        let barChartInstance = null;
         const formatter = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 
         async function crearActivo() {
@@ -191,51 +206,83 @@
             document.getElementById('tituloVista').innerText = `Patrimonio Neto - ${mesSel}`;
             
             renderPie(porCategorias, totalGlobal);
+            await renderBarHistorico();
         }
 
-        // FUNCIÓN DEL GRÁFICO REESCRITA (Porcentajes Nativos)
+        // 1. RENDER GRÁFICO CIRCULAR (PORCENTAJES)
         function renderPie(datos, total) {
             const ctx = document.getElementById('pieChart').getContext('2d');
             const labels = Object.keys(datos);
             const valores = Object.values(datos);
 
-            if(chartInstance) chartInstance.destroy();
+            if(pieChartInstance) pieChartInstance.destroy();
             if(total === 0) return;
 
-            // Formatear etiquetas de la leyenda superior agregando su porcentaje directo al texto
             const etiquetasConPorcentaje = labels.map((label, index) => {
                 const porcentaje = ((valores[index] / total) * 100).toFixed(1);
                 return `${label} (${porcentaje}%)`;
             });
 
-            chartInstance = new Chart(ctx, {
+            pieChartInstance = new Chart(ctx, {
                 type: 'pie',
                 data: {
-                    labels: etiquetasConPorcentaje, // Muestra el % arriba en los botones de colores
+                    labels: etiquetasConPorcentaje,
                     datasets: [{
                         data: valores,
                         backgroundColor: ['#4CAF50', '#8BC34A', '#9E9E9E', '#FFC107', '#2196F3', '#FF5722', '#E91E63'],
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
+                        borderWidth: 1.5
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { 
-                            position: 'top', 
-                            labels: { font: { size: 14, weight: 'bold' }, padding: 15 } 
+                        legend: { position: 'top', labels: { font: { size: 11, weight: 'bold' }, boxWidth: 12 } }
+                    }
+                }
+            });
+        }
+
+        // 2. NUEVO: RENDER GRÁFICO DE BARRAS (EVOLUCIÓN MENSUAL GLOBAL)
+        async function renderBarHistorico() {
+            const ctx = document.getElementById('barChart').getContext('2d');
+            const historialCompleto = await db.historial.toArray();
+            
+            const mesesMap = {};
+            historialCompleto.forEach(h => {
+                if(!mesesMap[h.mes]) mesesMap[h.mes] = {};
+                mesesMap[h.mes][h.activoId] = h.valor;
+            });
+
+            const mesesOrdenados = Object.keys(mesesMap).sort();
+            const sumasPorMes = mesesOrdenados.map(mes => {
+                return Object.values(mesesMap[mes]).reduce((a, b) => a + b, 0);
+            });
+
+            if(barChartInstance) barChartInstance.destroy();
+
+            barChartInstance = new Chart(ctx, {
+                type: 'bar', // Formato de barra nativo
+                data: {
+                    labels: mesesOrdenados,
+                    datasets: [{
+                        label: 'Patrimonio Total',
+                        data: sumasPorMes,
+                        backgroundColor: '#007aff', // Azul iOS nativo
+                        borderRadius: 8,
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { 
+                            grid: { color: '#e5e5ea' },
+                            ticks: { font: { size: 11 } }
                         },
-                        tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    const valor = context.raw;
-                                    const porcentaje = ((valor / total) * 100).toFixed(1);
-                                    return ` ${formatter.format(valor)} (${porcentaje}%)`;
-                                }
-                            }
-                        }
+                        x: { grid: { display: false } }
                     }
                 }
             });
