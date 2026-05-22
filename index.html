@@ -3,13 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas Pro</title>
+    <title>Mis Finanzas - Dashboard Real</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     
     <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
 
     <style>
         :root {
@@ -17,306 +18,230 @@
             --panel-bg: #ffffff;
             --text-main: #000000;
             --accent: #007aff;
-            --success: #34c759;
             --border: #d1d1d6;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
-        /* SplitView para iPad */
-        .sidebar { width: 340px; background: var(--panel-bg); border-right: 1px solid var(--border); padding: 20px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
+        /* Estructura iPad SplitView */
+        .sidebar { width: 350px; background: var(--panel-bg); border-right: 1px solid var(--border); padding: 25px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
         .main-content { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 25px; }
 
-        h2 { font-size: 20px; font-weight: 700; }
-        h3 { font-size: 16px; color: #8e8e93; margin-top: 10px; }
+        h2 { font-size: 22px; font-weight: 700; margin-bottom: 5px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+        label { font-size: 13px; text-transform: uppercase; color: #8e8e93; font-weight: 600; }
+        input, select { padding: 14px; border-radius: 12px; font-size: 16px; background: #f2f2f7; border: none; width: 100%; }
         
-        .form-group { display: flex; flex-direction: column; gap: 6px; }
-        label { font-size: 12px; text-transform: uppercase; color: #8e8e93; font-weight: 600; }
-        input, select { padding: 12px; border-radius: 10px; font-size: 16px; background: #f2f2f7; border: none; width: 100%; }
-        
-        button { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; }
-        button:active { opacity: 0.7; }
-        .btn-secondary { background: #e5e5ea; color: var(--text-main); padding: 8px 12px; font-size: 14px; }
+        button { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
+        button:active { opacity: 0.8; }
 
-        /* Cuadro de mando superior */
-        .dashboard-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .dashboard-card { background: var(--panel-bg); padding: 20px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
-        .balance-amount { font-size: 32px; font-weight: 700; color: var(--text-main); margin-top: 5px; }
-        .chart-container-donut { width: 130px; height: 130px; }
+        /* Dashboard y Gráficos */
+        .dashboard-row { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; }
+        .card { background: var(--panel-bg); padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
         
-        /* Gráfico Histórico Grande */
-        .history-card { background: var(--panel-bg); padding: 20px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.02); }
-        .chart-container-line { width: 100%; height: 220px; position: relative; }
+        .total-amount { font-size: 42px; font-weight: 800; color: #1c1c1e; margin: 10px 0; }
+        
+        .chart-container-big { width: 100%; height: 350px; position: relative; display: flex; justify-content: center; }
 
-        /* Listas */
-        .assets-list { background: var(--panel-bg); border-radius: 16px; padding: 0 20px; list-style: none; }
-        .asset-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #e5e5ea; }
+        /* Lista de activos */
+        .assets-list { background: var(--panel-bg); border-radius: 20px; padding: 10px 25px; list-style: none; margin-top: 10px; }
+        .asset-item { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; border-bottom: 1px solid #f2f2f7; }
         .asset-item:last-child { border-bottom: none; }
-        .asset-info name { font-weight: 600; display: block; }
+        .asset-info name { font-weight: 600; font-size: 17px; display: block; }
         .asset-info type { font-size: 13px; color: #8e8e93; }
-        .asset-actions { display: flex; align-items: center; gap: 15px; }
-        .asset-value { font-weight: 600; font-size: 16px; }
         
-        .delete-btn { color: #ff3b30; background: none; padding: 5px; font-size: 14px; font-weight: normal; }
-        .update-input { width: 90px; padding: 6px; font-size: 14px; text-align: right; }
+        .asset-actions { display: flex; align-items: center; gap: 12px; }
+        .update-input { width: 110px; padding: 8px; font-size: 15px; text-align: right; font-weight: 600; border: 1px solid #e5e5ea; }
+        .btn-save { background: #34c759; padding: 8px 15px; font-size: 14px; border-radius: 8px; }
+        .btn-del { color: #ff3b30; background: none; font-size: 18px; padding: 5px; }
+
+        hr { border: 0; border-top: 1px solid #f2f2f7; margin: 15px 0; }
     </style>
 </head>
 <body>
 
-    <!-- BARRA LATERAL: Filtro Mensual y Creación -->
     <div class="sidebar">
-        <h2>Control Mensual</h2>
+        <h2>Filtro Mensual</h2>
         <div class="form-group">
-            <label>Mes de Trabajo</label>
-            <!-- Selector para cambiar de mes y ver datos pasados o presentes -->
+            <label>Mes de análisis</label>
             <input type="month" id="filtroMes" onchange="actualizarUI()">
         </div>
         
-        <hr style="border: 0; border-top: 1px solid var(--border); margin: 10px 0;">
+        <hr>
 
-        <h2>Añadir Nuevo Activo</h2>
+        <h2>Nuevo Activo</h2>
         <div class="form-group">
-            <label>Nombre del Activo</label>
-            <input type="text" id="nombre" placeholder="ej. Cuenta Principal">
+            <label>Nombre</label>
+            <input type="text" id="nombre" placeholder="Ej: Mi Cartera VT">
         </div>
         <div class="form-group">
-            <label>Tipo</label>
+            <label>Categoría</label>
             <select id="tipo">
-                <option value="Banco">Banco (Liquidez)</option>
-                <option value="Acciones">Acciones / Fondos</option>
-                <option value="Cripto">Criptomonedas</option>
-                <option value="Efectivo">Otros / Efectivo</option>
+                <option value="Saving account">Saving account</option>
+                <option value="Deposit">Deposit</option>
+                <option value="Letras del Tesoro">Letras del Tesoro</option>
+                <option value="3 Säule">3 Säule</option>
+                <option value="Stocks & ETF VT">Stocks & ETF VT</option>
+                <option value="Crypto">Crypto</option>
+                <option value="Otros">Otros</option>
             </select>
         </div>
         <div class="form-group">
             <label>Valor Inicial (€)</label>
             <input type="number" id="balance" placeholder="0.00" step="0.01">
         </div>
-        <button onclick="crearActivo()">Dar de Alta Activo</button>
+        <button onclick="crearActivo()">Añadir Patrimonio</button>
     </div>
 
-    <!-- CONTENIDO PRINCIPAL -->
     <div class="main-content">
-        <h2 id="tituloVista">Cuadro de Mando</h2>
-        
-        <div class="dashboard-row">
-            <!-- Tarjeta de patrimonio de este mes -->
-            <div class="dashboard-card">
-                <div>
-                    <div style="font-size: 14px; color: #8e8e93; font-weight: 600;">PATRIMONIO NETO EN ESTE MES</div>
-                    <div class="balance-amount" id="totalNeto">0,00 €</div>
-                    <h3 id="subtituloCambio">Actualiza tus saldos a la derecha</h3>
-                </div>
-                <div class="chart-container-donut">
-                    <canvas id="donutChart"></canvas>
-                </div>
-            </div>
+        <header>
+            <h2 id="tituloVista">Cargando...</h2>
+            <div class="total-amount" id="totalNeto">0,00 €</div>
+        </header>
 
-            <!-- Gráfico de Líneas Evolución Temporal -->
-            <div class="history-card">
-                <div style="font-size: 14px; color: #8e8e93; font-weight: 600; margin-bottom: 10px;">EVOLUCIÓN HISTÓRICA GLOBAL</div>
-                <div class="chart-container-line">
-                    <canvas id="lineChart"></canvas>
-                </div>
+        <div class="card">
+            <label>Distribución de Activos (%)</label>
+            <div class="chart-container-big">
+                <canvas id="pieChart"></canvas>
             </div>
         </div>
 
-        <h2>Estado de tus Activos (Modifica el valor aquí si cambia)</h2>
+        <h2>Detalle de saldos mensuales</h2>
         <ul class="assets-list" id="listaActivos">
-            <!-- Cargado dinámicamente -->
         </ul>
     </div>
 
     <script>
-        // Establecer por defecto el mes actual en el selector del iPad
-        const hoy = new Date();
-        const mesActualString = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
-        document.getElementById('filtroMes').value = mesActualString;
+        // Registrar el plugin para pintar porcentajes dentro del gráfico
+        Chart.register(ChartDataLabels);
 
-        // 1. BASE DE DATOS (Guardamos activos fijos e historial por separado)
-        const db = new Dexie("FinanzasProDB");
-        db.version(2).stores({
+        // Forzar mes actual por defecto
+        const hoy = new Date();
+        document.getElementById('filtroMes').value = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+
+        // Estructura de Base de Datos Local en el iPad
+        const db = new Dexie("PatrimonioRealDB");
+        db.version(1).stores({
             activos: '++id, nombre, tipo',
-            historial: '++id, activoId, mes, valor' // "mes" se guardará como "YYYY-MM"
+            historial: '++id, activoId, mes, valor'
         });
 
-        let donutChartInstance = null;
-        let lineChartInstance = null;
+        let chartInstance = null;
         const formatter = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 
-        // 2. CREAR UN NUEVO ACTIVO
         async function crearActivo() {
             const nombre = document.getElementById('nombre').value;
             const tipo = document.getElementById('tipo').value;
-            const valorInicial = parseFloat(document.getElementById('balance').value);
-            const mesSeleccionado = document.getElementById('filtroMes').value;
+            const valor = parseFloat(document.getElementById('balance').value);
+            const mes = document.getElementById('filtroMes').value;
 
-            if(!nombre || isNaN(valorInicial)) return alert("Rellena el nombre y el valor inicial.");
+            if(!nombre || isNaN(valor)) return;
 
-            // Insertar la definición del activo
-            const idActivo = await db.activos.add({ nombre, tipo });
+            const id = await db.activos.add({ nombre, tipo });
+            await db.historial.add({ activoId: id, mes, valor });
             
-            // Insertar su primer valor en el mes seleccionado
-            await db.historial.add({ activoId: idActivo, mes: mesSeleccionado, valor: valorInicial });
-
             document.getElementById('nombre').value = "";
             document.getElementById('balance').value = "";
             actualizarUI();
         }
 
-        // 3. ACTUALIZAR EL VALOR SI CAMBIA DURANTE EL MES
-        async function modificarValorExistente(activoId, nuevoValor) {
-            const mesSeleccionado = document.getElementById('filtroMes').value;
-            if(isNaN(nuevoValor)) return;
-
-            // Buscamos si ya hay un registro para este activo en este mes específico
-            const registroMes = await db.historial.where({ activoId: activoId, mes: mesSeleccionado }).first();
-
-            if (registroMes) {
-                // Si ya existía dato este mes, actualizamos el valor en tiempo real
-                await db.historial.update(registroMes.id, { valor: nuevoValor });
+        async function actualizarValor(activoId, nuevoValor) {
+            const mes = document.getElementById('filtroMes').value;
+            const reg = await db.historial.where({ activoId, mes }).first();
+            if(reg) {
+                await db.historial.update(reg.id, { valor: nuevoValor });
             } else {
-                // Si es un mes nuevo donde este activo no tenía registro, creamos una "foto" con el nuevo valor
-                await db.historial.add({ activoId: activoId, mes: mesSeleccionado, valor: nuevoValor });
+                await db.historial.add({ activoId, mes, valor: nuevoValor });
             }
             actualizarUI();
         }
 
-        // 4. ELIMINAR ACTIVO POR COMPLETO
-        async function borrarActivo(id) {
-            if(confirm("¿Seguro que quieres eliminar este activo y todo su historial?")) {
+        async function eliminar(id) {
+            if(confirm("¿Eliminar este activo por completo?")) {
                 await db.activos.delete(id);
                 await db.historial.where('activoId').equals(id).delete();
                 actualizarUI();
             }
         }
 
-        // 5. RENDERIZACIÓN GENERAL DE LA INTERFAZ
         async function actualizarUI() {
-            const mesSeleccionado = document.getElementById('filtroMes').value;
-            const [ano, mes] = mesSeleccionado.split("-");
-            
-            // Ajustar títulos dinámicos
-            const mesesNombres = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
-            document.getElementById('tituloVista').innerText = `Cuadro de Mando — ${mesesNombres[parseInt(mes)-1]} ${ano}`;
+            const mesSel = document.getElementById('filtroMes').value;
+            const activos = await db.activos.toArray();
+            const lista = document.getElementById('listaActivos');
+            lista.innerHTML = "";
 
-            const todosLosActivos = await db.activos.toArray();
-            const listaHTML = document.getElementById('listaActivos');
-            listaHTML.innerHTML = "";
+            let totalGlobal = 0;
+            const porCategorias = {};
 
-            let totalMes = 0;
-            const totalesPorTipo = { Banco: 0, Acciones: 0, Cripto: 0, Efectivo: 0 };
-
-            // Procesar cada activo
-            for (let activo of todosLosActivos) {
-                // Buscar el valor de este activo en el mes seleccionado
-                let datosMes = await db.historial.where({ activoId: activo.id, mes: mesSeleccionado }).first();
-                
-                // Si el mes no tiene dato, arrastra automáticamente el valor del mes anterior disponible
-                if (!datosMes) {
-                    const ultimoHistorico = await db.historial.where('activoId').equals(activo.id).and(h => h.mes < mesSeleccionado).reverse().sortBy('mes');
-                    datosMes = ultimoHistorico[0] || { valor: 0 };
+            for(let a of activos) {
+                let h = await db.historial.where({ activoId: a.id, mes: mesSel }).first();
+                if(!h) {
+                    const last = await db.historial.where('activoId').equals(a.id).and(x => x.mes < mesSel).reverse().sortBy('mes');
+                    h = last[0] || { valor: 0 };
                 }
 
-                totalMes += datosMes.valor;
-                totalesPorTipo[activo.tipo] += datosMes.valor;
+                totalGlobal += h.valor;
+                porCategorias[a.tipo] = (porCategorias[a.tipo] || 0) + h.valor;
 
-                // Pintar línea en la lista
                 const li = document.createElement('li');
                 li.className = 'asset-item';
                 li.innerHTML = `
                     <div class="asset-info">
-                        <name>${activo.nombre}</name>
-                        <type>${activo.tipo}</type>
+                        <name>${a.nombre}</name>
+                        <type>${a.tipo}</type>
                     </div>
                     <div class="asset-actions">
-                        <!-- Input en vivo para cambiar el precio actual en cualquier momento -->
-                        <span style="font-size:12px; color:#8e8e93;">Valor este mes:</span>
-                        <input type="number" class="update-input" value="${datosMes.valor.toFixed(2)}" 
-                               onchange="modificarValorExistente(${activo.id}, parseFloat(this.value))" step="0.01">
-                        <span style="font-weight:600;">€</span>
-                        <button class="delete-btn" onclick="borrarActivo(${activo.id})">✕</button>
+                        <input type="number" id="in-${a.id}" class="update-input" value="${h.valor.toFixed(2)}">
+                        <button class="btn-save" onclick="actualizarValor(${a.id}, parseFloat(document.getElementById('in-${a.id}').value))">✓ Guardar</button>
+                        <button class="btn-del" onclick="eliminar(${a.id})">✕</button>
                     </div>
                 `;
-                listaHTML.appendChild(li);
+                lista.appendChild(li);
             }
 
-            document.getElementById('totalNeto').innerText = formatter.format(totalMes);
-
-            // Pintar los dos gráficos
-            renderDonut(totalesPorTipo);
-            await renderEvolucionTemporal();
+            document.getElementById('totalNeto').innerText = formatter.format(totalGlobal);
+            document.getElementById('tituloVista').innerText = `Patrimonio Neto - ${mesSel}`;
+            
+            renderPie(porCategorias, totalGlobal);
         }
 
-        // 6. GRÁFICO DE DISTRIBUCIÓN (DONUT)
-        function renderDonut(datos) {
-            const ctx = document.getElementById('donutChart').getContext('2d');
-            const labels = Object.keys(datos).filter(key => datos[key] > 0);
-            const valores = labels.map(key => datos[key]);
+        function renderPie(datos, total) {
+            const ctx = document.getElementById('pieChart').getContext('2d');
+            const labels = Object.keys(datos);
+            const valores = Object.values(datos);
 
-            if (donutChartInstance) { donutChartInstance.destroy(); }
-            if (valores.length === 0) return;
+            if(chartInstance) chartInstance.destroy();
+            if(total === 0) return;
 
-            donutChartInstance = new Chart(ctx, {
-                type: 'doughnut',
+            chartInstance = new Chart(ctx, {
+                type: 'pie',
                 data: {
                     labels: labels,
-                    datasets: [{ data: valores, backgroundColor: ['#007aff', '#ff9500', '#5856d6', '#34c759'], borderWidth: 0 }]
-                },
-                options: { plugins: { legend: { display: false } }, cutout: '72%' }
-            });
-        }
-
-        // 7. GRÁFICO DE EVOLUCIÓN MENSUAL (LÍNEAS)
-        async function renderEvolucionTemporal() {
-            const ctx = document.getElementById('lineChart').getContext('2d');
-            const todoElHistorial = await db.historial.toArray();
-            
-            // Agrupar los totales globales de la suma de activos indexados por mes
-            const mesesMap = {};
-            
-            // Para asegurar un cálculo real, agrupamos por mes de forma limpia
-            todoElHistorial.forEach(h => {
-                if(!mesesMap[h.mes]) mesesMap[h.mes] = {};
-                mesesMap[h.mes][h.activoId] = h.valor;
-            });
-
-            // Ordenamos cronológicamente los meses que tienen registros
-            const mesesOrdenados = Object.keys(mesesMap).sort();
-            const sumasGlobalesPorMes = mesesOrdenados.map(mes => {
-                return Object.values(mesesMap[mes]).reduce((a, b) => a + b, 0);
-            });
-
-            if (lineChartInstance) { lineChartInstance.destroy(); }
-
-            lineChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: mesesOrdenados, // Eje X: Meses (Ej: 2026-04, 2026-05)
                     datasets: [{
-                        label: 'Patrimonio Total',
-                        data: sumasGlobalesPorMes, // Eje Y: Suma total de dinero
-                        borderColor: '#007aff',
-                        backgroundColor: 'rgba(0, 122, 255, 0.08)',
-                        fill: true,
-                        tension: 0.2,
-                        borderWidth: 3
+                        data: valores,
+                        backgroundColor: ['#4CAF50', '#8BC34A', '#9E9E9E', '#FFC107', '#2196F3', '#FF5722', '#E91E63'],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
                     }]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        y: { grid: { display: true, color: '#e5e5ea' } },
-                        x: { grid: { display: false } }
+                    plugins: {
+                        legend: { position: 'top', labels: { font: { size: 14, weight: 'bold' }, padding: 20 } },
+                        datalabels: {
+                            color: '#fff',
+                            font: { weight: 'bold', size: 16 },
+                            formatter: (value) => {
+                                return ((value / total) * 100).toFixed(0) + '%';
+                            }
+                        }
                     }
                 }
             });
         }
 
-        // Inicializar la aplicación al cargar
         actualizarUI();
     </script>
 </body>
