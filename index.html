@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas - Inteligente Pro</title>
+    <title>Mis Finanzas - Optimizado para iPad</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -23,36 +23,60 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
-        /* Estructura Limpia del iPad */
-        .sidebar { width: 300px; background: var(--panel-bg); border-right: 1px solid var(--border); padding: 25px; display: flex; flex-direction: column; gap: 20px; }
-        .main-content { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 25px; }
+        /* BARRA LATERAL OPTIMIZADA CON SCROLL INDEPENDIENTE */
+        .sidebar { 
+            width: 320px; 
+            background: var(--panel-bg); 
+            border-right: 1px solid var(--border); 
+            padding: 25px; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 20px; 
+            overflow-y: auto; /* Permite scroll si el teclado del iPad se abre */
+            -webkit-overflow-scrolling: touch; /* Scroll suave en iOS */
+            height: 100vh;
+        }
+        
+        .main-content { 
+            flex: 1; 
+            padding: 30px; 
+            overflow-y: auto; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 25px; 
+            -webkit-overflow-scrolling: touch;
+        }
 
         h2 { font-size: 22px; font-weight: 700; margin-bottom: 5px; }
-        .form-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
         label { font-size: 13px; text-transform: uppercase; color: #8e8e93; font-weight: 600; }
-        input, select { padding: 14px; border-radius: 12px; font-size: 16px; background: #f2f2f7; border: none; width: 100%; }
+        input, select { padding: 14px; border-radius: 12px; font-size: 16px; background: #f2f2f7; border: none; width: 100%; color: var(--text-main); }
         
         button { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
         button:active { opacity: 0.8; }
         
-        .btn-add-trigger { background: #34c759; margin-top: auto; padding: 16px; font-size: 17px; }
+        /* Botón verde reubicado arriba de forma accesible */
+        .btn-add-trigger { background: #34c759; padding: 15px; font-size: 16px; width: 100%; margin-top: 5px; }
 
         .dashboard-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        
+        /* Ajuste para que los gráficos se adapten a pantallas de iPad Mini o Pro sin cortarse */
+        @media (max-width: 1024px) {
+            .dashboard-row { grid-template-columns: 1fr; }
+        }
+
         .card { background: var(--panel-bg); padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
         
-        /* Cabecera con Divisas cruzadas */
         .header-patrimonio { display: flex; flex-direction: column; gap: 4px; }
         .total-amount { font-size: 42px; font-weight: 800; color: #1c1c1e; }
-        .sub-amounts { font-size: 18px; font-weight: 600; color: #8e8e93; display: flex; gap: 15px; }
+        .sub-amounts { font-size: 16px; font-weight: 600; color: #8e8e93; display: flex; flex-wrap: wrap; gap: 10px; }
 
         .chart-container { width: 100%; height: 260px; position: relative; margin-top: 15px; }
 
-        /* Lista de activos y totales */
         .assets-list { background: var(--panel-bg); border-radius: 20px; padding: 10px 25px; list-style: none; margin-top: 10px; }
         .asset-item { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; border-bottom: 1px solid #f2f2f7; }
         .asset-item:last-child { border-bottom: none; }
         
-        /* Bloque de totales al final de la lista */
         .asset-item.total-row { border-top: 2px solid #1c1c1e; font-weight: 700; font-size: 17px; padding-top: 15px; background-color: rgba(0,0,0,0.01); border-bottom: none; align-items: flex-start; }
         .total-breakdown-list { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
 
@@ -64,19 +88,22 @@
         .btn-save { background: #34c759; padding: 8px 15px; font-size: 14px; border-radius: 8px; }
         .btn-del { color: #ff3b30; background: none; font-size: 18px; padding: 5px; }
 
-        /* MODAL / PESTAÑA FLOTANTE */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 1000; animation: fadeIn 0.2s ease; }
-        .modal-card { background: var(--panel-bg); padding: 30px; border-radius: 24px; width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 15px; position: relative; }
-        .modal-close { position: absolute; top: 20px; right: 20px; background: none; color: #8e8e93; font-size: 20px; cursor: pointer; padding: 5px; }
+        /* MODAL RESPONSIVO PARA EVITAR CORTES CON EL TECLADO TÁCTIL */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
+        .modal-card { background: var(--panel-bg); padding: 30px; border-radius: 24px; width: 100%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 15px; position: relative; max-height: 90vh; overflow-y: auto; }
+        .modal-close { position: absolute; top: 20px; right: 20px; background: none; color: #8e8e93; font-size: 20px; cursor: pointer; padding: 5px; border: none; }
 
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        hr { border: 0; border-top: 1px solid #f2f2f7; margin: 10px 0; }
+        hr { border: 0; border-top: 1px solid #f2f2f7; margin: 5px 0; }
     </style>
 </head>
 <body>
 
     <div class="sidebar">
-        <h2>Preferencias</h2>
+        <h2>Filtros</h2>
+        <div class="form-group">
+            <label>Mes de análisis</label>
+            <input type="month" id="filtroMes" onchange="actualizarUI()">
+        </div>
         <div class="form-group">
             <label>Moneda Principal</label>
             <select id="selectorDivisa" onchange="cambiarDivisa()">
@@ -86,13 +113,12 @@
                 <option value="GBP">Libras (£)</option>
             </select>
         </div>
-        <div class="form-group">
-            <label>Mes de análisis</label>
-            <input type="month" id="filtroMes" onchange="actualizarUI()">
-        </div>
         
+        <hr>
+
         <button class="btn-add-trigger" onclick="abrirModal()">＋ Nuevo Activo</button>
-    </div>
+        
+        </div>
 
     <div class="main-content">
         <header class="header-patrimonio">
@@ -150,24 +176,20 @@
     </div>
 
     <script>
-        // Variables de tipos de cambio (tasas base en EUR por defecto)
         let rates = { EUR: 1, CHF: 0.96, USD: 1.09, GBP: 0.85 };
 
-        // Forzar carga de cotizaciones reales desde internet
         async function obtenerTasasReales() {
             try {
                 const res = await fetch('https://open.er-api.com/v6/latest/EUR');
                 const data = await res.json();
                 if(data && data.rates) {
                     rates = data.rates;
-                    console.log("Tipos de cambio actualizados en tiempo real:", rates);
                 }
             } catch (e) {
-                console.log("No hay internet en el iPad. Usando tasas fijas de seguridad.");
+                console.log("Usando tasas de seguridad offline.");
             }
         }
 
-        // Control de Pestaña Flotante (Modal)
         function abrirModal() { document.getElementById('nuevoActivoModal').style.display = 'flex'; }
         function cerrarModal() { document.getElementById('nuevoActivoModal').style.display = 'none'; }
         function cerrarModalFuera(e) { if(e.target.id === 'nuevoActivoModal') cerrarModal(); }
@@ -273,9 +295,7 @@
                 lista.appendChild(li);
             }
 
-            // CALCULAR CONVERSIONES DE DIVISAS AUTOMÁTICAS
-            // Convertimos el total (que está en la divisa elegida) a EUR base y de ahí a las demás
-            const tasaAMedida = rates[divisaActual];
+            const tasaAMedida = rates[divisaActual] || 1;
             const totalEnEUR = totalGlobalBase / tasaAMedida;
 
             const totalCHF = totalEnEUR * rates['CHF'];
@@ -286,7 +306,6 @@
             const fEUR = inicializarFormateador('EUR');
             const fUSD = inicializarFormateador('USD');
 
-            // Actualizar la cabecera del programa
             document.getElementById('totalNeto').innerText = formatterMain.format(totalGlobalBase);
             document.getElementById('equivalenciasHeader').innerHTML = `
                 <span>Equivale a:</span> 
@@ -295,7 +314,6 @@
                 <span style="color:#1c1c1e">${fUSD.format(totalUSD)}</span>
             `;
 
-            // MEJORA: Fila final de la lista con desglose completo de las 3 monedas
             if(activos.length > 0) {
                 const liTotal = document.createElement('li');
                 liTotal.className = 'asset-item total-row';
@@ -386,7 +404,6 @@
             });
         }
 
-        // Arrancar la app descargando tipos de cambio de internet
         async function iniciarApp() {
             await obtenerTasasReales();
             cambiarDivisa();
