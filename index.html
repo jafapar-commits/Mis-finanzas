@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mis Finanzas PWA</title>
+    
+    <!-- Configuración para que actúe como App Nativa en iOS/iPadOS -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Finanzas">
+    
+    <!-- Librerías Externas desde CDN (Base de datos y Gráficos) -->
+    <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f2f2f7;
+            --panel-bg: #ffffff;
+            --text-main: #000000;
+            --accent: #007aff;
+            --success: #34c759;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+
+        /* Estructura SplitView para iPad */
+        .sidebar { width: 320px; background: var(--panel-bg); border-right: 1px solid #d1d1d6; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 25px; }
+
+        h2 { font-size: 22px; font-weight: 700; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        label { font-size: 13px; text-transform: uppercase; color: #8e8e93; font-weight: 600; }
+        input, select { padding: 12px; border: 1px solid #d1d1d6; border-radius: 10px; font-size: 16px; background: #f2f2f7; border: none; }
+        
+        button { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.2s; }
+        button:active { opacity: 0.7; }
+
+        /* Cuadro de Mando */
+        .dashboard-card { background: var(--panel-bg); padding: 24px; border-radius: 16px; display: flex; align-items: center; justify-content: space-between; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .balance-title { font-size: 14px; color: #8e8e93; }
+        .balance-amount { font-size: 36px; font-weight: 700; color: var(--success); margin-top: 5px; }
+        .chart-container { width: 160px; height: 160px; }
+
+        /* Lista de activos */
+        .assets-list { background: var(--panel-bg); border-radius: 16px; padding: 10px 20px; list-style: none; }
+        .asset-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #e5e5ea; }
+        .asset-item:last-child { border-bottom: none; }
+        .asset-info name { font-weight: 600; display: block; }
+        .asset-info type { font-size: 13px; color: #8e8e93; }
+        .asset-value { font-weight: 600; display: flex; align-items: center; gap: 15px; }
+        .delete-btn { color: #ff3b30; background: none; padding: 5px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <!-- BARRA LATERAL: Formulario -->
+    <div class="sidebar">
+        <h2>Añadir Activo</h2>
+        <div class="form-group">
+            <label>Nombre</label>
+            <input type="text" id="nombre" placeholder="ej. Cuenta Santander">
+        </div>
+        <div class="form-group">
+            <label>Tipo</label>
+            <select id="tipo">
+                <option value="Banco">Banco</option>
+                <option value="Acciones">Acciones</option>
+                <option value="Cripto">Cripto</option>
+                <option value="Efectivo">Efectivo</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Balance (€)</label>
+            <input type="number" id="balance" placeholder="0.00" step="0.01">
+        </div>
+        <button onclick="guardarActivo()">Guardar Activo</button>
+    </div>
+
+    <!-- CONTENIDO PRINCIPAL: Cuadro de Mando -->
+    <div class="main-content">
+        <h2>Mi Cuadro de Mando</h2>
+        
+        <div class="dashboard-card">
+            <div>
+                <div class="balance-title">Patrimonio Neto Total</div>
+                <div class="balance-amount" id="totalNeto">0,00 €</div>
+            </div>
+            <div class="chart-container">
+                <canvas id="donutChart"></canvas>
+            </div>
+        </div>
+
+        <h2>Tus Cuentas y Activos</h2>
+        <ul class="assets-list" id="listaActivos">
+            <!-- Los elementos se cargan dinámicamente -->
+        </ul>
+    </div>
+
+    <script>
+        // 1. INICIALIZAR BASE DE DATOS LOCAL (IndexedDB vía Dexie)
+        const db = new Dexie("FinanzasDB");
+        db.version(1).stores({
+            activos: '++id, nombre, tipo, balance'
+        });
+
+        let miGrafico = null;
+
+        // Formateador de moneda Euro
+        const formatter = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
+
+        // 2. RENDERIZAR INTERFAZ Y GRÁFICOS
+        async function actualizarUI() {
+            const activos = await db.activos.toArray();
+            
+            // Calcular total
+            const total = activos.reduce((sum, item) => sum + parseFloat(item.balance), 0);
+            document.getElementById('totalNeto').innerText = formatter.format(total);
+
+            // Listar Activos en el HTML
+            const lista = document.getElementById('listaActivos');
+            lista.innerHTML = "";
+            
+            // Agrupar datos para el gráfico
+            const totalesPorTipo = { Banco: 0, Acciones: 0, Cripto: 0, Efectivo: 0 };
+
+            activos.forEach(activo => {
+                totalesPorTipo[activo.tipo] += parseFloat(activo.balance);
+
+                const li = document.createElement('li');
+                li.className = 'asset-item';
+                li.innerHTML = `
+                    <div class="asset-info">
+                        <name>${activo.nombre}</name>
+                        <type>${activo.tipo}</type>
+                    </div>
+                    <div class="asset-value">
+                        <span>${formatter.format(activo.balance)}</span>
+                        <button class="delete-btn" onclick="borrarActivo(${activo.id})">Eliminar</button>
+                    </div>
+                `;
+                lista.appendChild(li);
+            });
+
+            actualizarGrafico(totalesPorTipo);
+        }
+
+        // 3. LÓGICA DEL GRÁFICO (Chart.js)
+        function actualizarGrafico(datos) {
+            const ctx = document.getElementById('donutChart').getContext('2d');
+            const labels = Object.keys(datos).filter(key => datos[key] > 0);
+            const valores = labels.map(key => datos[key]);
+
+            if (miGrafico) { miGrafico.destroy(); }
+
+            if (valores.length === 0) return;
+
+            miGrafico = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: valores,
+                        backgroundColor: ['#007aff', '#ff9500', '#5856d6', '#34c759'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // 4. ACCIONES DE BASE DE DATOS
+        async function guardarActivo() {
+            const nombre = document.getElementById('nombre').value;
+            const tipo = document.getElementById('tipo').value;
+            const balance = document.getElementById('balance').value;
+
+            if(!nombre || !balance) return alert("Por favor, rellena todos los campos.");
+
+            await db.activos.add({ nombre, tipo, balance: parseFloat(balance) });
+            
+            // Limpiar campos
+            document.getElementById('nombre').value = "";
+            document.getElementById('balance').value = "";
+            
+            actualizarUI();
+        }
+
+        async function borrarActivo(id) {
+            await db.activos.delete(id);
+            actualizarUI();
+        }
+
+        // Carga inicial al abrir la página
+        actualizarUI();
+    </script>
+</body>
+</html>
