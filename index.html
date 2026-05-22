@@ -3,14 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas - Dashboard Real</title>
+    <title>Mis Finanzas - Dashboard Corregido</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     
-    <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
 
     <style>
         :root {
@@ -24,7 +23,6 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
 
-        /* Estructura iPad SplitView */
         .sidebar { width: 350px; background: var(--panel-bg); border-right: 1px solid var(--border); padding: 25px; display: flex; flex-direction: column; gap: 20px; overflow-y: auto; }
         .main-content { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 25px; }
 
@@ -36,15 +34,10 @@
         button { background: var(--accent); color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
         button:active { opacity: 0.8; }
 
-        /* Dashboard y Gráficos */
-        .dashboard-row { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 20px; }
         .card { background: var(--panel-bg); padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); }
-        
         .total-amount { font-size: 42px; font-weight: 800; color: #1c1c1e; margin: 10px 0; }
-        
-        .chart-container-big { width: 100%; height: 350px; position: relative; display: flex; justify-content: center; }
+        .chart-container-big { width: 100%; height: 360px; position: relative; display: flex; justify-content: center; }
 
-        /* Lista de activos */
         .assets-list { background: var(--panel-bg); border-radius: 20px; padding: 10px 25px; list-style: none; margin-top: 10px; }
         .asset-item { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; border-bottom: 1px solid #f2f2f7; }
         .asset-item:last-child { border-bottom: none; }
@@ -52,7 +45,7 @@
         .asset-info type { font-size: 13px; color: #8e8e93; }
         
         .asset-actions { display: flex; align-items: center; gap: 12px; }
-        .update-input { width: 110px; padding: 8px; font-size: 15px; text-align: right; font-weight: 600; border: 1px solid #e5e5ea; }
+        .update-input { width: 110px; padding: 8px; font-size: 15px; text-align: right; font-weight: 600; border: 1px solid #e5e5ea; border-radius: 8px; }
         .btn-save { background: #34c759; padding: 8px 15px; font-size: 14px; border-radius: 8px; }
         .btn-del { color: #ff3b30; background: none; font-size: 18px; padding: 5px; }
 
@@ -96,31 +89,25 @@
 
     <div class="main-content">
         <header>
-            <h2 id="tituloVista">Cargando...</h2>
+            <h2 id="tituloVista">Patrimonio</h2>
             <div class="total-amount" id="totalNeto">0,00 €</div>
         </header>
 
         <div class="card">
-            <label>Distribución de Activos (%)</label>
+            <label style="margin-bottom: 15px; display: block;">Distribución de Activos (%)</label>
             <div class="chart-container-big">
                 <canvas id="pieChart"></canvas>
             </div>
         </div>
 
         <h2>Detalle de saldos mensuales</h2>
-        <ul class="assets-list" id="listaActivos">
-        </ul>
+        <ul class="assets-list" id="listaActivos"></ul>
     </div>
 
     <script>
-        // Registrar el plugin para pintar porcentajes dentro del gráfico
-        Chart.register(ChartDataLabels);
-
-        // Forzar mes actual por defecto
         const hoy = new Date();
         document.getElementById('filtroMes').value = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
 
-        // Estructura de Base de Datos Local en el iPad
         const db = new Dexie("PatrimonioRealDB");
         db.version(1).stores({
             activos: '++id, nombre, tipo',
@@ -158,7 +145,7 @@
         }
 
         async function eliminar(id) {
-            if(confirm("¿Eliminar este activo por completo?")) {
+            if(confirm("¿Eliminar este activo?")) {
                 await db.activos.delete(id);
                 await db.historial.where('activoId').equals(id).delete();
                 actualizarUI();
@@ -206,6 +193,7 @@
             renderPie(porCategorias, totalGlobal);
         }
 
+        // FUNCIÓN DEL GRÁFICO REESCRITA (Porcentajes Nativos)
         function renderPie(datos, total) {
             const ctx = document.getElementById('pieChart').getContext('2d');
             const labels = Object.keys(datos);
@@ -214,10 +202,16 @@
             if(chartInstance) chartInstance.destroy();
             if(total === 0) return;
 
+            // Formatear etiquetas de la leyenda superior agregando su porcentaje directo al texto
+            const etiquetasConPorcentaje = labels.map((label, index) => {
+                const porcentaje = ((valores[index] / total) * 100).toFixed(1);
+                return `${label} (${porcentaje}%)`;
+            });
+
             chartInstance = new Chart(ctx, {
                 type: 'pie',
                 data: {
-                    labels: labels,
+                    labels: etiquetasConPorcentaje, // Muestra el % arriba en los botones de colores
                     datasets: [{
                         data: valores,
                         backgroundColor: ['#4CAF50', '#8BC34A', '#9E9E9E', '#FFC107', '#2196F3', '#FF5722', '#E91E63'],
@@ -229,12 +223,17 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'top', labels: { font: { size: 14, weight: 'bold' }, padding: 20 } },
-                        datalabels: {
-                            color: '#fff',
-                            font: { weight: 'bold', size: 16 },
-                            formatter: (value) => {
-                                return ((value / total) * 100).toFixed(0) + '%';
+                        legend: { 
+                            position: 'top', 
+                            labels: { font: { size: 14, weight: 'bold' }, padding: 15 } 
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const valor = context.raw;
+                                    const porcentaje = ((valor / total) * 100).toFixed(1);
+                                    return ` ${formatter.format(valor)} (${porcentaje}%)`;
+                                }
                             }
                         }
                     }
