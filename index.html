@@ -358,32 +358,11 @@
             await actualizarUI();
         }
 
-        // MEJORA: Suma en vivo interactiva para el usuario al escribir aportes sin guardar
-        function calcularSaldoAutomatico(activoId, saldoAnterior) {
-            const inputAporte = document.getElementById(`in-apt-${activoId}`);
-            const inputSaldo = document.getElementById(`in-val-${activoId}`);
-            if (inputAporte && inputSaldo) {
-                const aporte = parseFloat(inputAporte.value) || 0;
-                const nuevoSaldo = saldoAnterior + aporte;
-                inputSaldo.value = nuevoSaldo.toFixed(2);
-            }
-        }
-
-        // MEJORA: Propagación automática en cascada para que los ingresos arrastren a los meses futuros sin perderse
         async function actualizarValor(activoId, nuevoValor, nuevoAporte) {
             const mes = document.getElementById('filtroMes').value;
             const reg = await db.historial.where({ activoId, mes }).first();
             if(reg) await db.historial.update(reg.id, { valor: nuevoValor, aporte: nuevoAporte });
             else await db.historial.add({ activoId, mes, valor: nuevoValor, aporte: nuevoAporte });
-            
-            // Bucle de cascada: actualiza automáticamente todos los registros futuros
-            let saldoAcumulado = nuevoValor;
-            const posteriores = await db.historial.where('activoId').equals(activoId).and(x => x.mes > mes).sortBy('mes');
-            for(let regPost of posteriores) {
-                saldoAcumulado = saldoAcumulado + (regPost.aporte || 0);
-                await db.historial.update(regPost.id, { valor: saldoAcumulado });
-            }
-
             actualizarUI();
         }
 
@@ -493,16 +472,19 @@
             lector.readAsText(file, "UTF-8"); input.value = "";
         }
 
-        // MEJORA: Arrastre limpio del saldo final acumulado del mes anterior
         async function obtenerSaldoArrastradoInteligente(activoId, mesActual) {
+            // 1. Si ya existe un registro exacto para este mes, lo usamos
             const regActual = await db.historial.where({ activoId, mes: mesActual }).first();
             if(regActual) return regActual;
 
+            // 2. Si no existe, buscamos el historial anterior ordenado de más nuevo a más viejo
             const historicosAnteriores = await db.historial.where('activoId').equals(activoId).and(x => x.mes < mesActual).reverse().sortBy('mes');
             if(historicosAnteriores.length > 0) {
+                // El saldo inteligente al inicio de este mes es: Saldo anterior + Aporte anterior
                 const ultimoRegistro = historicosAnteriores[0];
-                return { valor: (ultimoRegistro.valor || 0), aporte: 0 };
+                return { valor: (ultimoRegistro.valor || 0) + (ultimoRegistro.aporte || 0), aporte: 0 };
             }
+            // 3. Si es el primer mes absoluto sin historial
             return { valor: 0, aporte: 0 };
         }
 
@@ -536,18 +518,8 @@
             const divisaActual = localStorage.getItem('divisaSeleccionada');
 
             for(let a of activos) {
-                // Obtener el saldo final real acumulado del mes anterior directo de la base de datos
-                const historicosAnteriores = await db.historial.where('activoId').equals(a.id).and(x => x.mes < mesSel).reverse().sortBy('mes');
-                const saldoAnterior = historicosAnteriores.length > 0 ? (historicosAnteriores[0].valor || 0) : 0;
-
                 let h = await obtenerSaldoArrastradoInteligente(a.id, mesSel);
                 let valorAporte = h.aporte || 0;
-                
-                // Si es un mes nuevo sin guardar, su saldo por defecto inicial debe incorporar cualquier aporte
-                const regActualExistia = await db.historial.where({ activoId: a.id, mes: mesSel }).first();
-                if (!regActualExistia) {
-                    h.valor = saldoAnterior + valorAporte;
-                }
                 
                 totalGlobalBase += h.valor;
                 porCategorias[a.tipo] += h.valor;
@@ -573,12 +545,11 @@
                         </div>`;
                 }
 
-                // MEJORA: Escuchador oninput para sumar dinámicamente aportes al saldo en vivo
                 li.innerHTML = `
                     ${bloqueNombreHtml}
                     <div class="asset-actions">
-                        <div class="input-wrapper"><label>Saldo</label><input type="number" id="in-val-${a.id}" class="update-update-input update-input numeric-blur" value="${h.valor.toFixed(2)}"></div>
-                        <div class="input-wrapper"><label>Aporte Neto</label><input type="number" id="in-apt-${a.id}" class="update-input aporte-field numeric-blur" value="${valorAporte.toFixed(2)}" oninput="calcularSaldoAutomatico(${a.id}, ${saldoAnterior})"></div>
+                        <div class="input-wrapper"><label>Saldo</label><input type="number" id="in-val-${a.id}" class="update-input numeric-blur" value="${h.valor.toFixed(2)}"></div>
+                        <div class="input-wrapper"><label>Aporte Neto</label><input type="number" id="in-apt-${a.id}" class="update-input aporte-field numeric-blur" value="${valorAporte.toFixed(2)}"></div>
                         <button class="btn-save" onclick="actualizarValor(${a.id}, parseFloat(document.getElementById('in-val-${a.id}').value), parseFloat(document.getElementById('in-apt-${a.id}').value))">✓</button>
                         <button class="btn-del" onclick="eliminar(${a.id})">✕</button>
                     </div>
@@ -644,13 +615,19 @@
             const ctx = document.getElementById('barChart').getContext('2d');
             const todosActivos = await db.activos.toArray();
             const historialCompleto = await db.historial.toArray();
-            const mesesOrdenados = Array.from(new Set(historialCompleto.map(h => h.mes))).sort();
+            const mesSeleccionadoUI = document.getElementById('filtroMes').value;
+
+            // Inyectamos a la fuerza el mes de análisis actual para que aparezca linealmente en las barras históricas
+            let setMeses = new Set(historialCompleto.map(h => h.mes));
+            if (mesSeleccionadoUI) setMeses.add(mesSeleccionadoUI);
+            const mesesOrdenados = Array.from(setMeses).sort();
 
             if(barChartInstance) barChartInstance.destroy();
+            if (mesesOrdenados.length === 0 || mesesOrdenados[0] === "") return;
 
             if (filtroGraficoActual === 'categorias') {
-                const categoriesList = Object.keys(categoriasColores);
-                const datasetsCategorias = categoriesList.map(cat => ({ label: cat, data: [], backgroundColor: categoriasColores[cat], borderRadius: 4 }));
+                const categoriasLista = Object.keys(categoriasColores);
+                const datasetsCategorias = categoriasLista.map(cat => ({ label: cat, data: [], backgroundColor: categoriasColores[cat], borderRadius: 4 }));
 
                 for(let mes of mesesOrdenados) {
                     const fotoMes = { "Saving account": 0, "Deposit": 0, "Letras del Tesoro": 0, "3 Säule": 0, "Stocks & ETF VT": 0, "Crypto": 0, "Otros": 0 };
@@ -677,13 +654,13 @@
                 for(let mes of mesesOrdenados) {
                     let patrimonioMes = 0; let aporteMes = 0;
                     for(let a of todosActivos) {
-                        let h = await db.historial.where({ activoId: a.id, mes: mes }).first();
-                        // MEJORA: Evita duplicar o arrastrar aportes pasados erróneamente en el gráfico lineal
-                        let aporteMesActual = h ? (h.aporte || 0) : 0;
-                        
                         let hArrastrado = await obtenerSaldoArrastradoInteligente(a.id, mes);
                         patrimonioMes += hArrastrado.valor; 
-                        aporteMes += aporteMesActual;
+                        
+                        let hRealConcreta = await db.historial.where({ activoId: a.id, mes: mes }).first();
+                        if (hRealConcreta) {
+                            aporteMes += (hRealConcreta.aporte || 0);
+                        }
                     }
                     capitalAcumulado += aporteMes;
                     datasetSaldosPatrimonio.push(patrimonioMes);
