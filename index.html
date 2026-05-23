@@ -601,7 +601,7 @@
                 type: 'pie',
                 data: {
                     labels: labelsFiltrados.map(l => `${l} (${((datos[l]/total)*100).toFixed(1)}%)`),
-                    datasets: [{ data: labelsFiltrados.map(k => datos[k]), backgroundColor: labelsFiltrados.map(k => categoriesColores[k]), borderWidth: 1.5 }]
+                    datasets: [{ data: labelsFiltrados.map(k => datos[k]), backgroundColor: labelsFiltrados.map(k => categoriasColores[k]), borderWidth: 1.5 }]
                 },
                 options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { boxWidth: 12 } } } }
             });
@@ -612,7 +612,7 @@
             const todosActivos = await db.activos.toArray();
             const historialCompleto = await db.historial.toArray();
             
-            // SOLUCIÓN 1: Forzamos que la línea de tiempo incluya el mes seleccionado en pantalla aunque esté vacío
+            // CORRECCIÓN LÓGICA 1: Obligamos a la línea de tiempo a incluir el mes seleccionado en pantalla para ver proyecciones vacías
             const mesSel = document.getElementById('filtroMes').value;
             let listaMeses = historialCompleto.map(h => h.mes);
             if (mesSel && !listaMeses.includes(mesSel)) {
@@ -623,8 +623,8 @@
             if(barChartInstance) barChartInstance.destroy();
 
             if (filtroGraficoActual === 'categorias') {
-                const categoriasLista = Object.keys(categoriesColores);
-                const datasetsCategorias = categoriasLista.map(cat => ({ label: cat, data: [], backgroundColor: categoriesColores[cat], borderRadius: 4 }));
+                const categoriasLista = Object.keys(categoriasColores);
+                const datasetsCategorias = categoriasLista.map(cat => ({ label: cat, data: [], backgroundColor: categoriasColores[cat], borderRadius: 4 }));
 
                 for(let mes of mesesOrdenados) {
                     const fotoMes = { "Saving account": 0, "Deposit": 0, "Letras del Tesoro": 0, "3 Säule": 0, "Stocks & ETF VT": 0, "Crypto": 0, "Otros": 0 };
@@ -651,7 +651,7 @@
                 for(let mes of mesesOrdenados) {
                     let patrimonioMes = 0; let aporteMes = 0;
                     for(let a of todosActivos) {
-                        // SOLUCIÓN 2: El aporte se computa SÓLO si se registró en ese mes específico. No se hereda del pasado.
+                        // CORRECCIÓN LÓGICA 2: El aporte mensual pertenece estrictamente a su mes de registro. No se hereda del pasado de manera perpetua.
                         let h = await db.historial.where({ activoId: a.id, mes: mes }).first();
                         if(h) {
                             aporteMes += (h.aporte || 0);
