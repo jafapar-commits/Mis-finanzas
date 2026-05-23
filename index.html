@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas - Optimizado para iPad</title>
+    <title>Mis Finanzas - Panel Inmersivo</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -21,22 +21,34 @@
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; }
+        body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; position: relative; }
 
-        /* BARRA LATERAL OPTIMIZADA CON SCROLL INDEPENDIENTE */
+        /* BARRA LATERAL DESLIZANTE (ESCONDIDA POR DEFECTO) */
         .sidebar { 
-            width: 320px; 
+            width: 300px; 
             background: var(--panel-bg); 
             border-right: 1px solid var(--border); 
             padding: 25px; 
             display: flex; 
             flex-direction: column; 
             gap: 20px; 
-            overflow-y: auto; /* Permite scroll si el teclado del iPad se abre */
-            -webkit-overflow-scrolling: touch; /* Scroll suave en iOS */
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
             height: 100vh;
+            position: fixed; /* Flota sobre el contenido */
+            top: 0;
+            left: -300px; /* Escondida a la izquierda */
+            z-index: 999;
+            transition: left 0.3s cubic-bezier(0.1, 0.9, 0.2, 1); /* Animación iOS fluida */
+            box-shadow: 5px 0 25px rgba(0,0,0,0.08);
         }
         
+        /* Clase que activa la visibilidad de la barra lateral */
+        .sidebar.open {
+            left: 0;
+        }
+        
+        /* Contenedor Principal (Ocupa todo el ancho cuando el menú está cerrado) */
         .main-content { 
             flex: 1; 
             padding: 30px; 
@@ -45,9 +57,33 @@
             flex-direction: column; 
             gap: 25px; 
             -webkit-overflow-scrolling: touch;
+            width: 100%;
         }
 
-        h2 { font-size: 22px; font-weight: 700; margin-bottom: 5px; }
+        /* CABECERA CON BOTÓN MENÚ HAMBURGUESA */
+        .top-navbar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 5px;
+        }
+
+        .btn-toggle-menu {
+            background: var(--panel-bg);
+            color: var(--accent);
+            border: 1px solid var(--border);
+            font-size: 24px;
+            padding: 8px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-toggle-menu:active { opacity: 0.7; }
+
+        h2 { font-size: 22px; font-weight: 700; }
         .form-group { display: flex; flex-direction: column; gap: 8px; }
         label { font-size: 13px; text-transform: uppercase; color: #8e8e93; font-weight: 600; }
         input, select { padding: 14px; border-radius: 12px; font-size: 16px; background: #f2f2f7; border: none; width: 100%; color: var(--text-main); }
@@ -55,12 +91,10 @@
         button { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
         button:active { opacity: 0.8; }
         
-        /* Botón verde reubicado arriba de forma accesible */
         .btn-add-trigger { background: #34c759; padding: 15px; font-size: 16px; width: 100%; margin-top: 5px; }
 
         .dashboard-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         
-        /* Ajuste para que los gráficos se adapten a pantallas de iPad Mini o Pro sin cortarse */
         @media (max-width: 1024px) {
             .dashboard-row { grid-template-columns: 1fr; }
         }
@@ -88,7 +122,13 @@
         .btn-save { background: #34c759; padding: 8px 15px; font-size: 14px; border-radius: 8px; }
         .btn-del { color: #ff3b30; background: none; font-size: 18px; padding: 5px; }
 
-        /* MODAL RESPONSIVO PARA EVITAR CORTES CON EL TECLADO TÁCTIL */
+        /* TAP OVERLAY: Capa oscura trasera para cerrar el menú si tocas fuera */
+        .sidebar-overlay { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.15); display: none; z-index: 998; 
+        }
+
+        /* MODAL / PESTAÑA DE NUEVO ACTIVO */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
         .modal-card { background: var(--panel-bg); padding: 30px; border-radius: 24px; width: 100%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 15px; position: relative; max-height: 90vh; overflow-y: auto; }
         .modal-close { position: absolute; top: 20px; right: 20px; background: none; color: #8e8e93; font-size: 20px; cursor: pointer; padding: 5px; border: none; }
@@ -98,8 +138,13 @@
 </head>
 <body>
 
-    <div class="sidebar">
-        <h2>Filtros</h2>
+    <div class="sidebar-overlay" id="capaFondoSidebar" onclick="toggleSidebar()"></div>
+
+    <div class="sidebar" id="barraLateral">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+            <h2>Filtros y Ajustes</h2>
+            <button style="background: none; color: var(--accent); font-size: 24px;" onclick="toggleSidebar()">✕</button>
+        </div>
         <div class="form-group">
             <label>Mes de análisis</label>
             <input type="month" id="filtroMes" onchange="actualizarUI()">
@@ -117,12 +162,15 @@
         <hr>
 
         <button class="btn-add-trigger" onclick="abrirModal()">＋ Nuevo Activo</button>
-        
-        </div>
+    </div>
 
     <div class="main-content">
+        <div class="top-navbar">
+            <button class="btn-toggle-menu" onclick="toggleSidebar()">☰</button>
+            <h2 id="tituloVista" style="font-size: 24px;">Patrimonio Neto</h2>
+        </div>
+
         <header class="header-patrimonio">
-            <h2 id="tituloVista">Patrimonio</h2>
             <div class="total-amount" id="totalNeto">0,00 €</div>
             <div class="sub-amounts" id="equivalenciasHeader">Cargando tipos de cambio...</div>
         </header>
@@ -178,21 +226,37 @@
     <script>
         let rates = { EUR: 1, CHF: 0.96, USD: 1.09, GBP: 0.85 };
 
+        // CONTROL DE LA BARRA LATERAL DESLIZANTE
+        function toggleSidebar() {
+            const sidebar = document.getElementById('barraLateral');
+            const overlay = document.getElementById('capaFondoSidebar');
+            
+            if(sidebar.classList.contains('open')) {
+                sidebar.classList.remove('open');
+                overlay.style.display = 'none';
+            } else {
+                sidebar.classList.add('open');
+                overlay.style.display = 'block';
+            }
+        }
+
+        // CONTROL DEL MODAL DE ENTRADA
+        function abrirModal() { 
+            toggleSidebar(); // Cierra el menú al abrir la ventana flotante
+            document.getElementById('nuevoActivoModal').style.display = 'flex'; 
+        }
+        function cerrarModal() { document.getElementById('nuevoActivoModal').style.display = 'none'; }
+        function cerrarModalFuera(e) { if(e.target.id === 'nuevoActivoModal') cerrarModal(); }
+
         async function obtenerTasasReales() {
             try {
                 const res = await fetch('https://open.er-api.com/v6/latest/EUR');
                 const data = await res.json();
-                if(data && data.rates) {
-                    rates = data.rates;
-                }
+                if(data && data.rates) rates = data.rates;
             } catch (e) {
-                console.log("Usando tasas de seguridad offline.");
+                console.log("Modo offline.");
             }
         }
-
-        function abrirModal() { document.getElementById('nuevoActivoModal').style.display = 'flex'; }
-        function cerrarModal() { document.getElementById('nuevoActivoModal').style.display = 'none'; }
-        function cerrarModalFuera(e) { if(e.target.id === 'nuevoActivoModal') cerrarModal(); }
 
         const hoy = new Date();
         document.getElementById('filtroMes').value = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
