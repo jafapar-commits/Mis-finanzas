@@ -360,7 +360,8 @@
 
         async function actualizarValor(activoId, nuevoValor, nuevoAporte) {
             const mes = document.getElementById('filtroMes').value;
-            const reg = await db.historial.where({ activoId, mes }).first();
+            // CORRECCIÓN SINTAXIS DEXIE: Reemplazado .where({objeto}) por consulta por índice encadenada
+            const reg = await db.historial.where('activoId').equals(activoId).and(x => x.mes === mes).first();
             if(reg) await db.historial.update(reg.id, { valor: nuevoValor, aporte: nuevoAporte });
             else await db.historial.add({ activoId, mes, valor: nuevoValor, aporte: nuevoAporte });
             actualizarUI();
@@ -456,12 +457,14 @@
                         const linea = lineas[i].trim(); if(!linea) continue;
                         const celdas = linea.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, "").trim());
                         const nombre = celdas[0]; const tipo = celdas[1]; if(!nombre || !tipo) continue;
-                        let activo = await db.activos.where({ nombre: nombre }).first();
+                        // CORRECCIÓN SINTAXIS DEXIE
+                        let activo = await db.activos.where('nombre').equals(nombre).first();
                         let aId = activo ? activo.id : await db.activos.add({ nombre, tipo });
                         for(let j = 2; j < cabecera.length; j += 2) {
                             const mesCabecera = cabecera[j].replace("_Saldo", "");
                             const valor = parseFloat(celdas[j]) || 0; const aporte = parseFloat(celdas[j+1]) || 0;
-                            let h = await db.historial.where({ activoId: aId, mes: mesCabecera }).first();
+                            // CORRECCIÓN SINTAXIS DEXIE
+                            let h = await db.historial.where('activoId').equals(aId).and(x => x.mes === mesCabecera).first();
                             if(h) await db.historial.update(h.id, { valor, aporte });
                             else await db.historial.add({ activoId: aId, mes: mesCabecera, valor, aporte });
                         }
@@ -473,13 +476,15 @@
         }
 
         async function obtenerSaldoArrastradoInteligente(activoId, mesActual) {
-            const regActual = await db.historial.where({ activoId, mes: mesActual }).first();
+            // CORRECCIÓN SINTAXIS DEXIE
+            const regActual = await db.historial.where('activoId').equals(activoId).and(x => x.mes === mesActual).first();
             if(regActual) return regActual;
 
             const historicosAnteriores = await db.historial.where('activoId').equals(activoId).and(x => x.mes < mesActual).reverse().sortBy('mes');
             if(historicosAnteriores.length > 0) {
                 const ultimoRegistro = historicosAnteriores[0];
-                return { valor: (ultimoRegistro.valor || 0) + (ultimoRegistro.aporte || 0), aporte: 0 };
+                // CORRECCIÓN LÓGICA: El valor final ya incluye el aporte. No sumamos doblemente el aporte del pasado.
+                return { valor: ultimoRegistro.valor || 0, aporte: 0 };
             }
             return { valor: 0, aporte: 0 };
         }
@@ -612,7 +617,7 @@
             const todosActivos = await db.activos.toArray();
             const historialCompleto = await db.historial.toArray();
             
-            // CORRECCIÓN LÓGICA 1: Obligamos a la línea de tiempo a incluir el mes seleccionado en pantalla para ver proyecciones vacías
+            // LÓGICA CONTINUIDAD: Forzar que el mes seleccionado esté en la línea temporal para ver proyecciones correctas
             const mesSel = document.getElementById('filtroMes').value;
             let listaMeses = historialCompleto.map(h => h.mes);
             if (mesSel && !listaMeses.includes(mesSel)) {
@@ -651,8 +656,8 @@
                 for(let mes of mesesOrdenados) {
                     let patrimonioMes = 0; let aporteMes = 0;
                     for(let a of todosActivos) {
-                        // CORRECCIÓN LÓGICA 2: El aporte mensual pertenece estrictamente a su mes de registro. No se hereda del pasado de manera perpetua.
-                        let h = await db.historial.where({ activoId: a.id, mes: mes }).first();
+                        // CORRECCIÓN SINTAXIS Y LÓGICA: Consulta exacta por mes. El aporte no se arrastra falsamente, pertenece solo a su mes de registro.
+                        let h = await db.historial.where('activoId').equals(a.id).and(x => x.mes === mes).first();
                         if(h) {
                             aporteMes += (h.aporte || 0);
                         }
@@ -660,6 +665,7 @@
                         let hArrastrado = await obtenerSaldoArrastradoInteligente(a.id, mes);
                         patrimonioMes += hArrastrado.valor; 
                     }
+                    // capitalAcumulado va sumando incrementalmente. Si un mes es 0, el capital se mantiene estable arriba.
                     capitalAcumulado += aporteMes;
                     datasetSaldosPatrimonio.push(patrimonioMes);
                     datasetAportacionesAcumuladas.push(capitalAcumulado);
