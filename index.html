@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas - Arrastre Inteligente</title>
+    <title>Mis Finanzas - Control Total</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -80,11 +80,13 @@
         button:active { opacity: 0.8; }
         
         .btn-add-trigger { background: var(--green); padding: 15px; font-size: 16px; width: 100%; }
-        .btn-secundario { background: #e5e5ea; color: #007aff; padding: 10px; font-size: 14px; border-radius: 10px; text-align: center; }
+        .btn-secundario { background: #e5e5ea; color: #007aff; padding: 10px; font-size: 14px; border-radius: 10px; text-align: center; font-weight: 600; }
+        .btn-danger { background: rgba(255, 59, 48, 0.1); color: var(--red); padding: 10px; font-size: 14px; border-radius: 10px; text-align: center; font-weight: 600; border: 1px solid rgba(255, 59, 48, 0.2); }
+        .btn-danger:active { background: rgba(255, 59, 48, 0.2); }
 
         .chart-header-row { display: flex; justify-content: space-between; align-items: center; min-height: 32px; }
         .chart-selector-tabs { display: flex; background: #e5e5ea; padding: 2px; border-radius: 8px; gap: 2px; }
-        .tab-btn { background: none; color: #000000; padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; }
+        .tab-btn { background: none; color: #000000; padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; border: none; }
         .tab-btn.active-tab { background: #ffffff; box-shadow: 0 1px 3px rgba(0,0,0,0.1); color: var(--accent); }
 
         .dashboard-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -159,13 +161,19 @@
         <hr>
         <h3>Acciones</h3>
         <button class="btn-add-trigger" onclick="abrirModal()">＋ Nuevo Activo</button>
+        <button class="btn-danger" style="margin-top: 5px;" onclick="eliminarDatosMesActual()">🗑 Borrar Datos de Este Mes</button>
+        
         <hr>
         <h3>Copia de Seguridad</h3>
         <button class="btn-secundario" onclick="exportarMatrizCSV()">📥 Guardar Datos (Excel/CSV)</button>
-        <label class="btn-secundario" style="cursor: pointer; font-weight:600;">
+        <label class="btn-secundario" style="cursor: pointer; display: block;">
             📤 Recuperar desde archivo
             <input type="file" id="importarFile" accept=".csv" style="display: none;" onchange="importarMatrizCSV(this)">
         </label>
+        
+        <hr>
+        <h3>Zona Crítica</h3>
+        <button class="btn-danger" style="background: rgba(255, 59, 48, 0.05);" onclick="reiniciarTodaLaBD()">⚠ Reiniciar Toda la App</button>
     </div>
 
     <div class="main-content">
@@ -339,10 +347,33 @@
         }
 
         async function eliminar(id) {
-            if(confirm("¿Eliminar este activo e historial?")) {
+            if(confirm("¿Eliminar este activo e historial completo?")) {
                 await db.activos.delete(id);
                 await db.historial.where('activoId').equals(id).delete();
                 actualizarUI();
+            }
+        }
+
+        // NUEVA FUNCIÓN: BORRADO EXCLUSIVO DEL MES SELECCIONADO
+        async function eliminarDatosMesActual() {
+            const mesSel = document.getElementById('filtroMes').value;
+            if(confirm(`¿Estás seguro de que quieres borrar todos los saldos y aportes introducidos en el mes de ${mesSel}?\n\nLos nombres de tus activos y los datos de otros meses NO se borrarán.`)) {
+                await db.historial.where('mes').equals(mesSel).delete();
+                alert(`Datos del mes ${mesSel} eliminados. El sistema volverá a calcular los arrastres lógicos.`);
+                toggleSidebar();
+                actualizarUI();
+            }
+        }
+
+        // NUEVA FUNCIÓN: REINICIAR TODA LA APLICACIÓN
+        async function reiniciarTodaLaBD() {
+            if(confirm("¡ATENCIÓN CRÍTICA!\n\n¿Quieres borrar absolutamente toda la base de datos? Se perderán todos tus activos, configuraciones e historial de forma permanente.")) {
+                if(confirm("Confirma por segunda vez: ¿Estás seguro al 100%?")) {
+                    await db.activos.clear();
+                    await db.historial.clear();
+                    alert("Aplicación restaurada de fábrica con éxito.");
+                    window.location.reload();
+                }
             }
         }
 
@@ -399,23 +430,15 @@
             lector.readAsText(file, "UTF-8"); input.value = "";
         }
 
-        // LÓGICA DE ARRASTRE AVANZADA: BUSCA EL ANTERIOR Y SUMA SALDO + APORTE
         async function obtenerSaldoArrastradoInteligente(activoId, mesActual) {
             const regActual = await db.historial.where({ activoId, mes: mesActual }).first();
-            if(regActual) return regActual; // Si ya tiene datos en este mes, respetarlos.
+            if(regActual) return regActual;
 
-            // Si está vacío, buscar el mes inmediatamente anterior disponible
             const historicosAnteriores = await db.historial.where('activoId').equals(activoId).and(x => x.mes < mesActual).reverse().sortBy('mes');
-            
             if(historicosAnteriores.length > 0) {
                 const ultimoRegistro = historicosAnteriores[0];
-                const saldoBase = ultimoRegistro.valor || 0;
-                const aporteHecho = ultimoRegistro.aporte || 0;
-                
-                // NUEVA FÓRMULA SOLICITADA: El saldo inicial hereda el saldo anterior + el aporte incorporado
-                return { valor: saldoBase + aporteHecho, aporte: 0 };
+                return { valor: (ultimoRegistro.valor || 0) + (ultimoRegistro.aporte || 0), aporte: 0 };
             }
-            
             return { valor: 0, aporte: 0 };
         }
 
@@ -440,7 +463,6 @@
             const mapaSimbolos = { 'EUR': '€', 'USD': '$', 'CHF': 'CHF', 'GBP': '£' };
 
             for(let a of activos) {
-                // Aplicamos el nuevo calculador inteligente con el sumatorio integrado del aporte
                 let h = await obtenerSaldoArrastradoInteligente(a.id, mesSel);
                 let valorAporte = h.aporte || 0;
                 
@@ -464,7 +486,6 @@
                 lista.appendChild(li);
             }
 
-            // Variación mensual
             const partesMes = mesSel.split("-");
             let anioAnterior = parseInt(partesMes[0]); let mesAnterior = parseInt(partesMes[1]) - 1;
             if(mesAnterior === 0) { mesAnterior = 12; anioAnterior -= 1; }
@@ -556,13 +577,10 @@
                 for(let mes of mesesOrdenados) {
                     let patrimonioMes = 0; let aporteMes = 0;
                     for(let a of todosActivos) {
-                        // Usamos la base de datos cruda para la línea violeta acumulativa real de aportes
                         let h = await db.historial.where({ activoId: a.id, mes: mes }).first();
                         if(!h) { const last = await db.historial.where('activoId').equals(a.id).and(x => x.mes < mes).reverse().sortBy('mes'); h = last[0] || { valor: 0, aporte: 0 }; }
                         
-                        // Pero para las barras, usamos el saldo arrastrado calculado
                         let hArrastrado = await obtenerSaldoArrastradoInteligente(a.id, mes);
-                        
                         patrimonioMes += hArrastrado.valor; 
                         aporteMes += (h.aporte || 0);
                     }
