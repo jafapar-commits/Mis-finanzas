@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas - Máxima Seguridad</title>
+    <title>Mis Finanzas - Matriz Profesional</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -77,7 +77,6 @@
         
         .btn-add-trigger { background: #34c759; padding: 15px; font-size: 16px; width: 100%; }
         
-        /* Botones secundarios para Copia de Seguridad */
         .btn-secundario { background: #e5e5ea; color: #007aff; padding: 10px; font-size: 14px; border-radius: 10px; text-align: center; }
         .btn-secundario:active { background: #d1d1d6; }
 
@@ -148,11 +147,11 @@
         <hr>
 
         <h3>Copia de Seguridad</h3>
-        <button class="btn-secundario" onclick="exportarAExcel()">📥 Guardar Datos (Excel/CSV)</button>
+        <button class="btn-secundario" onclick="exportarMatrizCSV()">📥 Guardar Datos (Excel/CSV)</button>
         
         <label class="btn-secundario" style="cursor: pointer; font-weight:600;">
             📤 Recuperar desde archivo
-            <input type="file" id="importarFile" accept=".csv" style="display: none;" onchange="importarDesdeExcel(this)">
+            <input type="file" id="importarFile" accept=".csv" style="display: none;" onchange="importarMatrizCSV(this)">
         </label>
     </div>
 
@@ -302,89 +301,124 @@
             }
         }
 
-        // ==========================================
-        // NUEVAS FUNCIONES DE COPIA DE SEGURIDAD (CSV)
-        // ==========================================
-        async function exportarAExcel() {
+        // ========================================================
+        // NUEVA LÓGICA: EXPORTACIÓN EN MATRIZ HORIZONTAL (EXCEL CLEAN)
+        // ========================================================
+        async function exportarMatrizCSV() {
             const activos = await db.activos.toArray();
             const historial = await db.historial.toArray();
             
-            if(activos.length === 0) { alert("No hay datos para exportar."); return; }
+            if(activos.length === 0) { alert("No hay datos guardados para exportar."); return; }
 
-            // Crear cabecera del archivo Excel/CSV
-            let csvContenido = "data:text/csv;charset=utf-8,";
-            csvContenido += "NombreActivo,Categoria,Mes,Valor\n";
+            // 1. Conseguir todos los meses únicos existentes y ordenarlos cronológicamente
+            const mesesUnicos = Array.from(new Set(historial.map(h => h.mes))).sort();
 
-            historial.forEach(h => {
-                const activo = activos.find(a => a.id === h.activoId);
-                if(activo) {
-                    // Evitar problemas de comas en nombres escapando las celdas
-                    csvContenido += `"${activo.nombre}","${activo.tipo}","${h.mes}",${h.valor}\n`;
-                }
-            });
+            // 2. Crear cabecera: Activo, Categoria, [Mes1], [Mes2]...
+            let columnasCabecera = ["Activo", "Categoria", ...mesesUnicos];
+            let lineasCSV = [];
+            lineasCSV.push(columnasCabecera.map(c => `"${c}"`).join(","));
 
-            // Trigger nativo de descarga para la app Archivos de iOS
-            const encodedUri = encodeURI(csvContenido);
+            // 3. Rellenar filas (una por cada activo)
+            for (let a of activos) {
+                let fila = [`"${a.nombre}"`, `"${a.tipo}"`];
+                
+                // Mapear el saldo del activo en cada columna de mes
+                mesesUnicos.forEach(mes => {
+                    const registro = historial.find(h => h.activoId === a.id && h.mes === mes);
+                    const valorCelda = registro ? registro.valor.toFixed(2) : "0.00";
+                    fila.push(valorCelda);
+                });
+                
+                lineasCSV.push(fila.join(","));
+            }
+
+            // 4. Crear URI con codificación UTF-8 explícita para compatibilidad con Excel (BOM incluido)
+            const csvTexto = "\uFEFF" + lineasCSV.join("\n");
+            const blob = new Blob([csvTexto], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
             const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", `Copia_Patrimonio_${document.getElementById('filtroMes').value}.csv`);
+            link.setAttribute("href", url);
+            link.setAttribute("download", `Patrimonio_Matricial_${document.getElementById('filtroMes').value}.csv`);
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
         }
 
-        function importarDesdeExcel(input) {
+        // ========================================================
+        // NUEVA LÓGICA: IMPORTACIÓN COMPLETA DESDE LA MATRIZ HORIZONTAL
+        // ========================================================
+        function importarMatrizCSV(input) {
             const file = input.files[0];
             if (!file) return;
 
             const lector = new FileReader();
             lector.onload = async function(e) {
                 const texto = e.target.result;
-                const lineas = texto.split("\n");
+                const lineas = texto.split(/\r?\n/);
                 
-                if(lineas.length < 2) { alert("Archivo no válido"); return; }
+                if(lineas.length < 2) { alert("El archivo está vacío o dañado."); return; }
                 
-                if(confirm("Se añadirán los datos del archivo a tu panel actual. ¿Continuar?")) {
-                    // Recorrer líneas omitiendo la cabecera
+                // Procesar Cabecera para identificar los meses dinámicos
+                const cabecera = lineas[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, "").trim());
+                if(cabecera[0] !== "Activo" || cabecera[1] !== "Categoria") {
+                    alert("Formato de Excel incorrecto. Las dos primeras columnas deben ser 'Activo' y 'Categoria'.");
+                    return;
+                }
+
+                // Extraer los meses mapeados (a partir del índice 2 en adelante)
+                const mesesColumnas = cabecera.slice(2);
+
+                if(confirm("Se sobrescribirán o añadirán los registros del Excel. ¿Proceder?")) {
+                    
                     for(let i = 1; i < lineas.length; i++) {
                         const linea = lineas[i].trim();
                         if(!linea) continue;
 
-                        // Separar celdas respetando las comillas
-                        const celdas = linea.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                        if(celdas.length < 4) continue;
+                        const celdas = linea.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, "").trim());
+                        if(celdas.length < 3) continue;
 
-                        const nombre = celdas[0].replace(/"/g, "");
-                        const tipo = celdas[1].replace(/"/g, "");
-                        const mes = celdas[2].replace(/"/g, "");
-                        const valor = parseFloat(celdas[3]);
+                        const nombreActivo = celdas[0];
+                        const categoriaActivo = celdas[1];
 
-                        if(!nombre || isNaN(valor)) continue;
+                        if(!nombreActivo || !categoriaActivo) continue;
 
-                        // Comprobar si el activo ya existe por nombre
-                        let activo = await db.activos.where({ nombre: nombre }).first();
+                        // Insertar o recuperar el id del activo en base de datos
+                        let activo = await db.activos.where({ nombre: nombreActivo }).first();
                         let activoId;
                         if(!activo) {
-                            activoId = await db.activos.add({ nombre, tipo });
+                            activoId = await db.activos.add({ nombre: nombreActivo, tipo: categoriaActivo });
                         } else {
                             activoId = activo.id;
+                            // Actualizar la categoría por si acaso se modificó en el Excel
+                            await db.activos.update(activoId, { tipo: categoriaActivo });
                         }
 
-                        // Comprobar si ya existe registro en ese mes específico para actualizarlo o crearlo
-                        let h = await db.historial.where({ activoId: activoId, mes: mes }).first();
-                        if(h) {
-                            await db.historial.update(h.id, { valor: valor });
-                        } else {
-                            await db.historial.add({ activoId: activoId, mes, valor });
+                        // Recorrer los meses dinámicos e importar los valores numéricos correspondientes
+                        for(let j = 0; j < mesesColumnas.length; j++) {
+                            const mesStr = mesesColumnas[j];
+                            const valorStr = celdas[j + 2];
+                            const valorNum = parseFloat(valorStr);
+
+                            if(!mesStr || isNaN(valorNum)) continue;
+
+                            // Actualizar el historial si ya existe o guardarlo como nuevo
+                            let h = await db.historial.where({ activoId: activoId, mes: mesStr }).first();
+                            if(h) {
+                                await db.historial.update(h.id, { valor: valorNum });
+                            } else {
+                                await db.historial.add({ activoId: activoId, mes: mesStr, valor: valorNum });
+                            }
                         }
                     }
-                    alert("¡Copia de seguridad importada con éxito!");
+                    
+                    alert("¡Matriz histórica recuperada e integrada con éxito!");
                     toggleSidebar();
                     actualizarUI();
                 }
             };
-            lector.readAsText(file);
-            input.value = ""; // Reset del input file
+            lector.readAsText(file, "UTF-8");
+            input.value = ""; 
         }
 
         async function actualizarUI() {
