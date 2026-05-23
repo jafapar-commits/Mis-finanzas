@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas - Control Total</title>
+    <title>Mis Finanzas - Arrastre Inteligente</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -82,7 +82,6 @@
         .btn-add-trigger { background: var(--green); padding: 15px; font-size: 16px; width: 100%; }
         .btn-secundario { background: #e5e5ea; color: #007aff; padding: 10px; font-size: 14px; border-radius: 10px; text-align: center; }
 
-        /* SELECTOR DE VISTA DEL GRÁFICO DERECHO */
         .chart-header-row { display: flex; justify-content: space-between; align-items: center; min-height: 32px; }
         .chart-selector-tabs { display: flex; background: #e5e5ea; padding: 2px; border-radius: 8px; gap: 2px; }
         .tab-btn { background: none; color: #000000; padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; cursor: pointer; }
@@ -242,7 +241,7 @@
     <script>
         let rates = { EUR: 1, CHF: 0.96, USD: 1.09, GBP: 0.85 };
         let esModoPrivado = false;
-        let filtroGraficoActual = 'categorias'; // Estado por defecto: categorías por color
+        let filtroGraficoActual = 'categorias';
 
         function toggleSidebar() {
             const sidebar = document.getElementById('barraLateral');
@@ -267,7 +266,6 @@
             else elemento.classList.remove('privacy-blur');
         }
 
-        // CONTROLADOR DEL FILTRO DEL GRÁFICO HISTÓRICO
         function cambiarFiltroGrafico(tipo) {
             filtroGraficoActual = tipo;
             document.getElementById('btnTabCategorias').classList.toggle('active-tab', tipo === 'categorias');
@@ -359,7 +357,7 @@
             activos.forEach(a => {
                 let fila = [`"${a.nombre}"`, `"${a.tipo}"`];
                 mesesUnicos.forEach(m => {
-                    const r = historial.find(h => h.activoId === a.id && h.mes === m);
+                    const r = historial.find(h => h.activoId === a.id && m === h.mes);
                     fila.push(r ? r.valor.toFixed(2) : "0.00");
                     fila.push(r && r.aporte ? r.aporte.toFixed(2) : "0.00");
                 });
@@ -401,11 +399,30 @@
             lector.readAsText(file, "UTF-8"); input.value = "";
         }
 
+        // LÓGICA DE ARRASTRE AVANZADA: BUSCA EL ANTERIOR Y SUMA SALDO + APORTE
+        async function obtenerSaldoArrastradoInteligente(activoId, mesActual) {
+            const regActual = await db.historial.where({ activoId, mes: mesActual }).first();
+            if(regActual) return regActual; // Si ya tiene datos en este mes, respetarlos.
+
+            // Si está vacío, buscar el mes inmediatamente anterior disponible
+            const historicosAnteriores = await db.historial.where('activoId').equals(activoId).and(x => x.mes < mesActual).reverse().sortBy('mes');
+            
+            if(historicosAnteriores.length > 0) {
+                const ultimoRegistro = historicosAnteriores[0];
+                const saldoBase = ultimoRegistro.valor || 0;
+                const aporteHecho = ultimoRegistro.aporte || 0;
+                
+                // NUEVA FÓRMULA SOLICITADA: El saldo inicial hereda el saldo anterior + el aporte incorporado
+                return { valor: saldoBase + aporteHecho, aporte: 0 };
+            }
+            
+            return { valor: 0, aporte: 0 };
+        }
+
         async function calcularTotalMes(mesFiltro) {
             const activos = await db.activos.toArray(); let total = 0;
             for(let a of activos) {
-                let h = await db.historial.where({ activoId: a.id, mes: mesFiltro }).first();
-                if(!h) { const last = await db.historial.where('activoId').equals(a.id).and(x => x.mes < mesFiltro).reverse().sortBy('mes'); h = last[0] || { valor: 0 }; }
+                let h = await obtenerSaldoArrastradoInteligente(a.id, mesFiltro);
                 total += h.valor;
             }
             return total;
@@ -423,9 +440,10 @@
             const mapaSimbolos = { 'EUR': '€', 'USD': '$', 'CHF': 'CHF', 'GBP': '£' };
 
             for(let a of activos) {
-                let h = await db.historial.where({ activoId: a.id, mes: mesSel }).first();
-                if(!h) { const last = await db.historial.where('activoId').equals(a.id).and(x => x.mes < mesSel).reverse().sortBy('mes'); h = last[0] || { valor: 0, aporte: 0 }; }
+                // Aplicamos el nuevo calculador inteligente con el sumatorio integrado del aporte
+                let h = await obtenerSaldoArrastradoInteligente(a.id, mesSel);
                 let valorAporte = h.aporte || 0;
+                
                 totalGlobalBase += h.valor;
                 porCategorias[a.tipo] += h.valor;
 
@@ -501,7 +519,6 @@
             });
         }
 
-        // MOTOR INTEGRADO DE GRÁFICOS: RENDERIZA SEGÚN EL FILTRO SELECCIONADO
         async function renderAnalisisEvolucionInversion() {
             const ctx = document.getElementById('barChart').getContext('2d');
             const todosActivos = await db.activos.toArray();
@@ -511,15 +528,13 @@
             if(barChartInstance) barChartInstance.destroy();
 
             if (filtroGraficoActual === 'categorias') {
-                // PERSPECTIVA A: TU GRÁFICO HISTÓRICO ORIGINAL APILADO POR COLORES
                 const categoriasLista = Object.keys(categoriasColores);
                 const datasetsCategorias = categoriasLista.map(cat => ({ label: cat, data: [], backgroundColor: categoriasColores[cat], borderRadius: 4 }));
 
                 for(let mes of mesesOrdenados) {
                     const fotoMes = { "Saving account": 0, "Deposit": 0, "Letras del Tesoro": 0, "3 Säule": 0, "Stocks & ETF VT": 0, "Crypto": 0, "Otros": 0 };
                     for(let a of todosActivos) {
-                        let h = await db.historial.where({ activoId: a.id, mes: mes }).first();
-                        if(!h) { const last = await db.historial.where('activoId').equals(a.id).and(x => x.mes < mes).reverse().sortBy('mes'); h = last[0] || { valor: 0 }; }
+                        let h = await obtenerSaldoArrastradoInteligente(a.id, mes);
                         fotoMes[a.tipo] += h.valor;
                     }
                     datasetsCategorias.forEach(ds => ds.data.push(fotoMes[ds.label]));
@@ -536,15 +551,20 @@
                 });
 
             } else {
-                // PERSPECTIVA B: EL NUEVO GRÁFICO DE RENDIMIENTO (PATRIMONIO vs APORTACIONES ACUMULADAS)
                 let datasetSaldosPatrimonio = []; let datasetAportacionesAcumuladas = []; let capitalAcumulado = 0;
 
                 for(let mes of mesesOrdenados) {
                     let patrimonioMes = 0; let aporteMes = 0;
                     for(let a of todosActivos) {
+                        // Usamos la base de datos cruda para la línea violeta acumulativa real de aportes
                         let h = await db.historial.where({ activoId: a.id, mes: mes }).first();
                         if(!h) { const last = await db.historial.where('activoId').equals(a.id).and(x => x.mes < mes).reverse().sortBy('mes'); h = last[0] || { valor: 0, aporte: 0 }; }
-                        patrimonioMes += h.valor; aporteMes += (h.aporte || 0);
+                        
+                        // Pero para las barras, usamos el saldo arrastrado calculado
+                        let hArrastrado = await obtenerSaldoArrastradoInteligente(a.id, mes);
+                        
+                        patrimonioMes += hArrastrado.valor; 
+                        aporteMes += (h.aporte || 0);
                     }
                     capitalAcumulado += aporteMes;
                     datasetSaldosPatrimonio.push(patrimonioMes);
