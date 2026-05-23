@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas - Edición Total</title>
+    <title>Mis Finanzas - Exportación Sincronizada</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/dexie@latest/dist/dist-dexie.js"></script>
     <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
 
     <style>
@@ -117,7 +118,6 @@
         .asset-info name { font-weight: 600; font-size: 17px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .asset-info type { font-size: 13px; color: #8e8e93; }
         
-        /* Input para edición inline del nombre */
         .edit-name-input { font-size: 16px; font-weight: 600; padding: 6px 10px; border: 1px solid var(--accent); border-radius: 8px; background: #f2f2f7; width: 140px; }
 
         .asset-actions { display: flex; align-items: center; gap: 10px; }
@@ -256,7 +256,7 @@
         let rates = { EUR: 1, CHF: 0.96, USD: 1.09, GBP: 0.85 };
         let esModoPrivado = false;
         let filtroGraficoActual = 'categorias';
-        let activoIdEnEdicion = null; // Controla qué activo se está renombrando
+        let activoIdEnEdicion = null;
 
         function toggleSidebar() {
             const sidebar = document.getElementById('barraLateral');
@@ -334,15 +334,19 @@
             actualizarUI();
         }
 
+        // SOLUCIÓN AL ERROR DE ASINCRONÍA: Añadidos los 'await' obligatorios para sincronizar la base de datos
         async function crearActivo() {
             const nombre = document.getElementById('nombre').value;
             const tipo = document.getElementById('tipo').value;
             const valor = parseFloat(document.getElementById('balance').value);
             const mes = document.getElementById('filtroMes').value;
             if(!nombre || isNaN(valor)) return;
+            
             const id = await db.activos.add({ nombre, tipo });
             await db.historial.add({ activoId: id, mes, valor, aporte: 0 });
-            cerrarModal(); actualizarUI();
+            
+            cerrarModal(); 
+            await actualizarUI(); // Espera a que termine la actualización completa de la UI antes de liberar el hilo
         }
 
         async function actualizarValor(activoId, nuevoValor, nuevoAporte) {
@@ -353,7 +357,6 @@
             actualizarUI();
         }
 
-        // NUEVA FUNCIÓN: PERMITE MODIFICAR EL NOMBRE DEL ACTIVO
         async function guardarNuevoNombreActivo(activoId) {
             const inputNombre = document.getElementById(`edit-name-field-${activoId}`);
             if(!inputNombre) return;
@@ -361,7 +364,7 @@
             if(nuevoNombre === "") return;
             
             await db.activos.update(activoId, { nombre: nuevoNombre });
-            activoIdEnEdicion = null; // Cierra el modo edición
+            activoIdEnEdicion = null;
             actualizarUI();
         }
 
@@ -493,7 +496,6 @@
                 const li = document.createElement('li');
                 li.className = 'asset-item';
                 
-                // Renderizado condicional: si está en edición, muestra un input de texto
                 let bloqueNombreHtml = "";
                 if(activoIdEnEdicion === a.id) {
                     bloqueNombreHtml = `
