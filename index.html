@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas - Matriz Profesional</title>
+    <title>Mis Finanzas - Inteligencia Patrimonial</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -18,6 +18,8 @@
             --text-main: #000000;
             --accent: #007aff;
             --border: #d1d1d6;
+            --green: #34c759;
+            --red: #ff3b30;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -58,12 +60,15 @@
 
         .top-navbar { display: flex; align-items: center; gap: 15px; margin-bottom: 5px; }
 
-        .btn-toggle-menu {
+        .nav-buttons { display: flex; gap: 10px; }
+
+        .btn-navbar {
             background: var(--panel-bg); color: var(--accent); border: 1px solid var(--border);
-            font-size: 24px; padding: 8px 14px; border-radius: 12px; cursor: pointer;
+            font-size: 22px; padding: 10px 15px; border-radius: 12px; cursor: pointer;
             box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center;
         }
-        .btn-toggle-menu:active { opacity: 0.7; }
+        .btn-navbar:active { opacity: 0.7; }
+        .btn-navbar.active-privacy { background: #e5e5ea; color: #5856d6; border-color: #5856d6; }
 
         h2 { font-size: 22px; font-weight: 700; }
         h3 { font-size: 14px; text-transform: uppercase; color: #8e8e93; font-weight: 700; margin-top: 10px; }
@@ -75,7 +80,7 @@
         button { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
         button:active { opacity: 0.8; }
         
-        .btn-add-trigger { background: #34c759; padding: 15px; font-size: 16px; width: 100%; }
+        .btn-add-trigger { background: var(--green); padding: 15px; font-size: 16px; width: 100%; }
         
         .btn-secundario { background: #e5e5ea; color: #007aff; padding: 10px; font-size: 14px; border-radius: 10px; text-align: center; }
         .btn-secundario:active { background: #d1d1d6; }
@@ -85,11 +90,18 @@
 
         .card { background: var(--panel-bg); padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
         
-        .header-patrimonio { display: flex; flex-direction: column; gap: 4px; }
-        .total-amount { font-size: 42px; font-weight: 800; color: #1c1c1e; }
-        .sub-amounts { font-size: 16px; font-weight: 600; color: #8e8e93; display: flex; flex-wrap: wrap; gap: 10px; }
+        .header-patrimonio { display: flex; flex-direction: column; gap: 6px; }
+        .total-amount { font-size: 42px; font-weight: 800; color: #1c1c1e; transition: filter 0.1s ease; }
+        
+        /* FUNCIÓN 2: ESTILOS DE INCREMENTO MENSUAL */
+        .delta-badge { font-size: 16px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; border-radius: 8px; width: fit-content; }
+        .delta-positive { color: var(--green); background: rgba(52, 199, 89, 0.1); }
+        .delta-negative { color: var(--red); background: rgba(255, 59, 48, 0.1); }
+        .delta-neutral { color: #8e8e93; background: rgba(142, 142, 147, 0.1); }
 
-        .chart-container { width: 100%; height: 260px; position: relative; margin-top: 15px; }
+        .sub-amounts { font-size: 15px; font-weight: 600; color: #8e8e93; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 2px; }
+
+        .chart-container { width: 100%; height: 270px; position: relative; margin-top: 15px; }
 
         .assets-list { background: var(--panel-bg); border-radius: 20px; padding: 10px 25px; list-style: none; margin-top: 10px; }
         .asset-item { display: flex; justify-content: space-between; align-items: center; padding: 18px 0; border-bottom: 1px solid #f2f2f7; }
@@ -101,10 +113,18 @@
         .asset-info name { font-weight: 600; font-size: 17px; display: block; }
         .asset-info type { font-size: 13px; color: #8e8e93; }
         
-        .asset-actions { display: flex; align-items: center; gap: 12px; }
-        .update-input { width: 110px; padding: 8px; font-size: 15px; text-align: right; font-weight: 600; border: 1px solid #e5e5ea; border-radius: 8px; }
-        .btn-save { background: #34c759; padding: 8px 15px; font-size: 14px; border-radius: 8px; }
-        .btn-del { color: #ff3b30; background: none; font-size: 18px; padding: 5px; }
+        /* FUNCIÓN 3: ENTRADAS DE APORTACIONES EN LÍNEA */
+        .asset-actions { display: flex; align-items: center; gap: 10px; }
+        .input-wrapper { display: flex; flex-direction: column; gap: 4px; text-align: right; }
+        .input-wrapper label { font-size: 10px; font-weight: 700; color: #8e8e93; text-transform: uppercase; }
+        .update-input { width: 110px; padding: 8px; font-size: 15px; text-align: right; font-weight: 600; border: 1px solid #e5e5ea; border-radius: 8px; background: #fafafa; }
+        .update-input.aporte-field { background: #f1fcf4; border-color: #c7eed2; color: #1e7e34; }
+        
+        .btn-save { background: var(--green); padding: 10px 15px; font-size: 14px; border-radius: 8px; height: 37px; align-self: flex-end; }
+        .btn-del { color: var(--red); background: none; font-size: 18px; padding: 5px; margin-left: 2px; border: none; cursor: pointer; }
+
+        /* MODO PRIVACIDAD (DIFUMINADO) */
+        .privacy-blur { filter: blur(6px); pointer-events: none; user-select: none; }
 
         .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.15); display: none; z-index: 998; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
@@ -157,12 +177,18 @@
 
     <div class="main-content">
         <div class="top-navbar">
-            <button class="btn-toggle-menu" onclick="toggleSidebar()">☰</button>
+            <div class="nav-buttons">
+                <button class="btn-navbar" onclick="toggleSidebar()">☰</button>
+                <button class="btn-navbar" id="btnPrivacidad" onclick="togglePrivacidad()">👁</button>
+            </div>
             <h2 id="tituloVista" style="font-size: 24px;">Patrimonio Neto</h2>
         </div>
 
         <header class="header-patrimonio">
             <div class="total-amount" id="totalNeto">0,00 €</div>
+            
+            <div id="variacionMensualBadge" class="delta-badge delta-neutral">0.00%</div>
+            
             <div class="sub-amounts" id="equivalenciasHeader">Cargando tipos de cambio...</div>
         </header>
 
@@ -174,7 +200,7 @@
                 </div>
             </div>
             <div class="card">
-                <label style="font-weight: 600; color: #8e8e93;">EVOLUCIÓN MENSUAL POR CATEGORÍAS</label>
+                <label style="font-weight: 600; color: #8e8e93;">PATRIMONIO TOTAL vs CAPITAL INVERTIDO</label>
                 <div class="chart-container">
                     <canvas id="barChart"></canvas>
                 </div>
@@ -216,6 +242,7 @@
 
     <script>
         let rates = { EUR: 1, CHF: 0.96, USD: 1.09, GBP: 0.85 };
+        let esModoPrivado = false; // Estado Global Función 4
 
         function toggleSidebar() {
             const sidebar = document.getElementById('barraLateral');
@@ -227,6 +254,26 @@
             }
         }
 
+        // FUNCIÓN 4: CONTROL DE MODO PRIVACIDAD
+        function togglePrivacidad() {
+            esModoPrivado = !esModoPrivado;
+            const btn = document.getElementById('btnPrivacidad');
+            
+            if(esModoPrivado) {
+                btn.classList.add('active-privacy');
+                btn.innerText = "🙈";
+            } else {
+                btn.classList.remove('active-privacy');
+                btn.innerText = "👁";
+            }
+            actualizarUI(); // Renderiza de nuevo aplicando los difuminados
+        }
+
+        function aplicarFiltroPrivacidad(elemento) {
+            if (esModoPrivado) elemento.classList.add('privacy-blur');
+            else elemento.classList.remove('privacy-blur');
+        }
+
         function abrirModal() { toggleSidebar(); document.getElementById('nuevoActivoModal').style.display = 'flex'; }
         function cerrarModal() { document.getElementById('nuevoActivoModal').style.display = 'none'; }
         function cerrarModalFuera(e) { if(e.target.id === 'nuevoActivoModal') cerrarModal(); }
@@ -236,7 +283,7 @@
                 const res = await fetch('https://open.er-api.com/v6/latest/EUR');
                 const data = await res.json();
                 if(data && data.rates) rates = data.rates;
-            } catch (e) { console.log("Modo offline."); }
+            } catch (e) { console.log("Modo offline o API bloqueada."); }
         }
 
         const hoy = new Date();
@@ -250,8 +297,12 @@
             "3 Säule": "#FFC107", "Stocks & ETF VT": "#2196F3", "Crypto": "#FF5722", "Otros": "#E91E63"
         };
 
+        // ACTUALIZACIÓN DE BASE DE DATOS (AÑADIDO EL CAMPO 'aporte')
         const db = new Dexie("PatrimonioRealDB");
-        db.version(1).stores({ activos: '++id, nombre, tipo', historial: '++id, activoId, mes, valor' });
+        db.version(2).stores({ 
+            activos: '++id, nombre, tipo', 
+            historial: '++id, activoId, mes, valor, aporte' 
+        }).upgrade(tx => {}); // Auto actualiza estructuras antiguas
 
         let pieChartInstance = null; let barChartInstance = null;
         let formatterMain = inicializarFormateador(localStorage.getItem('divisaSeleccionada'));
@@ -277,7 +328,7 @@
             if(!nombre || isNaN(valor)) return;
 
             const id = await db.activos.add({ nombre, tipo });
-            await db.historial.add({ activoId: id, mes, valor });
+            await db.historial.add({ activoId: id, mes, valor, aporte: 0 }); // Aporte por defecto 0
             
             document.getElementById('nombre').value = "";
             document.getElementById('balance').value = "";
@@ -285,69 +336,63 @@
             actualizarUI();
         }
 
-        async function actualizarValor(activoId, nuevoValor) {
+        // FUNCIÓN 3: EDITAR REGISTROS CON VALOR Y APORTE SIMULTÁNEAMENTE
+        async function actualizarValor(activoId, nuevoValor, nuevoAporte) {
             const mes = document.getElementById('filtroMes').value;
             const reg = await db.historial.where({ activoId, mes }).first();
-            if(reg) await db.historial.update(reg.id, { valor: nuevoValor });
-            else await db.historial.add({ activoId, mes, valor: nuevoValor });
+            
+            if(reg) {
+                await db.historial.update(reg.id, { valor: nuevoValor, aporte: nuevoAporte });
+            } else {
+                await db.historial.add({ activoId, mes, valor: nuevoValor, aporte: nuevoAporte });
+            }
             actualizarUI();
         }
 
         async function eliminar(id) {
-            if(confirm("¿Eliminar este activo?")) {
+            if(confirm("¿Eliminar este activo por completo de todos los meses históricos?")) {
                 await db.activos.delete(id);
                 await db.historial.where('activoId').equals(id).delete();
                 actualizarUI();
             }
         }
 
-        // ========================================================
-        // NUEVA LÓGICA: EXPORTACIÓN EN MATRIZ HORIZONTAL (EXCEL CLEAN)
-        // ========================================================
+        // EXPORTACIÓN MATRICIAL OPTIMIZADA CON APORTACIONES
         async function exportarMatrizCSV() {
             const activos = await db.activos.toArray();
             const historial = await db.historial.toArray();
-            
-            if(activos.length === 0) { alert("No hay datos guardados para exportar."); return; }
+            if(activos.length === 0) { alert("No hay datos."); return; }
 
-            // 1. Conseguir todos los meses únicos existentes y ordenarlos cronológicamente
             const mesesUnicos = Array.from(new Set(historial.map(h => h.mes))).sort();
-
-            // 2. Crear cabecera: Activo, Categoria, [Mes1], [Mes2]...
-            let columnasCabecera = ["Activo", "Categoria", ...mesesUnicos];
-            let lineasCSV = [];
-            lineasCSV.push(columnasCabecera.map(c => `"${c}"`).join(","));
-
-            // 3. Rellenar filas (una por cada activo)
-            for (let a of activos) {
-                let fila = [`"${a.nombre}"`, `"${a.tipo}"`];
-                
-                // Mapear el saldo del activo en cada columna de mes
-                mesesUnicos.forEach(mes => {
-                    const registro = historial.find(h => h.activoId === a.id && h.mes === mes);
-                    const valorCelda = registro ? registro.valor.toFixed(2) : "0.00";
-                    fila.push(valorCelda);
-                });
-                
-                lineasCSV.push(fila.join(","));
-            }
-
-            // 4. Crear URI con codificación UTF-8 explícita para compatibilidad con Excel (BOM incluido)
-            const csvTexto = "\uFEFF" + lineasCSV.join("\n");
-            const blob = new Blob([csvTexto], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
             
+            // Creamos columnas dobles por mes: [Mes]_Saldo, [Mes]_Aporte
+            let cabecera = ["Activo", "Categoria"];
+            mesesUnicos.forEach(m => {
+                cabecera.push(`${m}_Saldo`);
+                cabecera.push(`${m}_Aporte`);
+            });
+
+            let lineas = [cabecera.map(c => `"${c}"`).join(",")];
+
+            activos.forEach(a => {
+                let fila = [`"${a.nombre}"`, `"${a.tipo}"`];
+                mesesUnicos.forEach(m => {
+                    const r = historial.find(h => h.activoId === a.id && h.mes === m);
+                    fila.push(r ? r.valor.toFixed(2) : "0.00");
+                    fila.push(r && r.aporte ? r.aporte.toFixed(2) : "0.00");
+                });
+                lineas.push(fila.join(","));
+            });
+
+            const csvTexto = "\uFEFF" + lineas.join("\n");
+            const blob = new Blob([csvTexto], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
-            link.setAttribute("href", url);
-            link.setAttribute("download", `Patrimonio_Matricial_${document.getElementById('filtroMes').value}.csv`);
-            document.body.appendChild(link);
+            link.href = URL.createObjectURL(blob);
+            link.download = `Patrimonio_Avanzado_${document.getElementById('filtroMes').value}.csv`;
             link.click();
-            document.body.removeChild(link);
         }
 
-        // ========================================================
-        // NUEVA LÓGICA: IMPORTACIÓN COMPLETA DESDE LA MATRIZ HORIZONTAL
-        // ========================================================
+        // IMPORTACIÓN MATRICIAL INTELIGENTE CON APORTACIONES
         function importarMatrizCSV(input) {
             const file = input.files[0];
             if (!file) return;
@@ -356,71 +401,57 @@
             lector.onload = async function(e) {
                 const texto = e.target.result;
                 const lineas = texto.split(/\r?\n/);
+                if(lineas.length < 2) return;
                 
-                if(lineas.length < 2) { alert("El archivo está vacío o dañado."); return; }
-                
-                // Procesar Cabecera para identificar los meses dinámicos
                 const cabecera = lineas[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, "").trim());
-                if(cabecera[0] !== "Activo" || cabecera[1] !== "Categoria") {
-                    alert("Formato de Excel incorrecto. Las dos primeras columnas deben ser 'Activo' y 'Categoria'.");
-                    return;
-                }
+                if(cabecera[0] !== "Activo") { alert("Formato no válido."); return; }
 
-                // Extraer los meses mapeados (a partir del índice 2 en adelante)
-                const mesesColumnas = cabecera.slice(2);
-
-                if(confirm("Se sobrescribirán o añadirán los registros del Excel. ¿Proceder?")) {
-                    
+                if(confirm("¿Proceder con la restauración masiva?")) {
                     for(let i = 1; i < lineas.length; i++) {
-                        const linea = lineas[i].trim();
-                        if(!linea) continue;
-
+                        const linea = lineas[i].trim(); if(!linea) continue;
                         const celdas = linea.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, "").trim());
-                        if(celdas.length < 3) continue;
+                        
+                        const nombre = celdas[0]; const tipo = celdas[1];
+                        if(!nombre || !tipo) continue;
 
-                        const nombreActivo = celdas[0];
-                        const categoriaActivo = celdas[1];
+                        let activo = await db.activos.where({ nombre: nombre }).first();
+                        let aId = activo ? activo.id : await db.activos.add({ nombre, tipo });
 
-                        if(!nombreActivo || !categoriaActivo) continue;
+                        // Leer los meses dinámicamente saltando de 2 en 2 (Saldo y Aporte)
+                        for(let j = 2; j < cabecera.length; j += 2) {
+                            const mesCabecera = cabecera[j].replace("_Saldo", "");
+                            const valor = parseFloat(celdas[j]) || 0;
+                            const aporte = parseFloat(celdas[j+1]) || 0;
 
-                        // Insertar o recuperar el id del activo en base de datos
-                        let activo = await db.activos.where({ nombre: nombreActivo }).first();
-                        let activoId;
-                        if(!activo) {
-                            activoId = await db.activos.add({ nombre: nombreActivo, tipo: categoriaActivo });
-                        } else {
-                            activoId = activo.id;
-                            // Actualizar la categoría por si acaso se modificó en el Excel
-                            await db.activos.update(activoId, { tipo: categoriaActivo });
-                        }
-
-                        // Recorrer los meses dinámicos e importar los valores numéricos correspondientes
-                        for(let j = 0; j < mesesColumnas.length; j++) {
-                            const mesStr = mesesColumnas[j];
-                            const valorStr = celdas[j + 2];
-                            const valorNum = parseFloat(valorStr);
-
-                            if(!mesStr || isNaN(valorNum)) continue;
-
-                            // Actualizar el historial si ya existe o guardarlo como nuevo
-                            let h = await db.historial.where({ activoId: activoId, mes: mesStr }).first();
-                            if(h) {
-                                await db.historial.update(h.id, { valor: valorNum });
-                            } else {
-                                await db.historial.add({ activoId: activoId, mes: mesStr, valor: valorNum });
-                            }
+                            let h = await db.historial.where({ activoId: aId, mes: mesCabecera }).first();
+                            if(h) await db.historial.update(h.id, { valor, aporte });
+                            else await db.historial.add({ activoId: aId, mes: mesCabecera, valor, aporte });
                         }
                     }
-                    
-                    alert("¡Matriz histórica recuperada e integrada con éxito!");
-                    toggleSidebar();
-                    actualizarUI();
+                    alert("Importación de datos completada.");
+                    toggleSidebar(); actualizarUI();
                 }
             };
             lector.readAsText(file, "UTF-8");
-            input.value = ""; 
+            input.value = "";
         }
 
+        // OBTENER TOTAL DE CUALQUIER MES PARA CÁLCULOS COMPARATIVOS
+        async function calcularTotalMes(mesFiltro) {
+            const activos = await db.activos.toArray();
+            let total = 0;
+            for(let a of activos) {
+                let h = await db.historial.where({ activoId: a.id, mes: mesFiltro }).first();
+                if(!h) {
+                    const last = await db.historial.where('activoId').equals(a.id).and(x => x.mes < mesFiltro).reverse().sortBy('mes');
+                    h = last[0] || { valor: 0 };
+                }
+                total += h.valor;
+            }
+            return total;
+        }
+
+        // CORE UI ENGINE
         async function actualizarUI() {
             const mesSel = document.getElementById('filtroMes').value;
             const activos = await db.activos.toArray();
@@ -438,9 +469,10 @@
                 let h = await db.historial.where({ activoId: a.id, mes: mesSel }).first();
                 if(!h) {
                     const last = await db.historial.where('activoId').equals(a.id).and(x => x.mes < mesSel).reverse().sortBy('mes');
-                    h = last[0] || { valor: 0 };
+                    h = last[0] || { valor: 0, aporte: 0 };
                 }
 
+                let valorAporte = h.aporte || 0;
                 totalGlobalBase += h.valor;
                 porCategorias[a.tipo] += h.valor;
 
@@ -452,17 +484,46 @@
                         <type>${a.tipo}</type>
                     </div>
                     <div class="asset-actions">
-                        <input type="number" id="in-${a.id}" class="update-input" value="${h.valor.toFixed(2)}">
-                        <button class="btn-save" onclick="actualizarValor(${a.id}, parseFloat(document.getElementById('in-${a.id}').value))">✓ Guardar</button>
+                        <div class="input-wrapper">
+                            <label>Saldo (${mapaSimbolos[divisaActual]})</label>
+                            <input type="number" id="in-val-${a.id}" class="update-input numeric-blur" value="${h.valor.toFixed(2)}">
+                        </div>
+                        <div class="input-wrapper">
+                            <label>Aporte Neto</label>
+                            <input type="number" id="in-apt-${a.id}" class="update-input aporte-field numeric-blur" value="${valorAporte.toFixed(2)}" placeholder="0.00">
+                        </div>
+                        <button class="btn-save" onclick="actualizarValor(${a.id}, parseFloat(document.getElementById('in-val-${a.id}').value), parseFloat(document.getElementById('in-apt-${a.id}').value))">✓</button>
                         <button class="btn-del" onclick="eliminar(${a.id})">✕</button>
                     </div>
                 `;
                 lista.appendChild(li);
             }
 
+            // FUNCIÓN 2: LÓGICA DE VARIACIÓN NETAS MENSUALES
+            const partesMes = mesSel.split("-");
+            let anioAnterior = parseInt(partesMes[0]);
+            let mesAnterior = parseInt(partesMes[1]) - 1;
+            if(mesAnterior === 0) { mesAnterior = 12; anioAnterior -= 1; }
+            const stringMesAnterior = `${anioAnterior}-${String(mesAnterior).padStart(2, '0')}`;
+            
+            const totalMesAnterior = await calcularTotalMes(stringMesAnterior);
+            const badgeVariacion = document.getElementById('variacionMensualBadge');
+            
+            if(totalMesAnterior > 0) {
+                const diffNeto = totalGlobalBase - totalMesAnterior;
+                const porcentaje = (diffNeto / totalMesAnterior) * 100;
+                const signo = diffNeto >= 0 ? "▲" : "▼";
+                
+                badgeVariacion.innerText = `${signo} ${formatterMain.format(diffNeto)} (${porcentaje.toFixed(2)}%) vs mes anterior`;
+                badgeVariacion.className = `delta-badge ${diffNeto >= 0 ? 'delta-positive' : 'delta-negative'}`;
+            } else {
+                badgeVariacion.innerText = "● Primer mes del registro";
+                badgeVariacion.className = "delta-badge delta-neutral";
+            }
+
+            // EQUIVALENCIAS MULTIDIVISAS
             const tasaAMedida = rates[divisaActual] || 1;
             const totalEnEUR = totalGlobalBase / tasaAMedida;
-
             const totalCHF = totalEnEUR * rates['CHF'];
             const totalEUR = totalEnEUR * rates['EUR'];
             const totalUSD = totalEnEUR * rates['USD'];
@@ -471,12 +532,16 @@
             const fEUR = inicializarFormateador('EUR');
             const fUSD = inicializarFormateador('USD');
 
-            document.getElementById('totalNeto').innerText = formatterMain.format(totalGlobalBase);
-            document.getElementById('equivalenciasHeader').innerHTML = `
+            // CONFIGURAR CONTENEDORES PRINCIPALES DE SALDOS
+            const domTotalNeto = document.getElementById('totalNeto');
+            const domEquivalencias = document.getElementById('equivalenciasHeader');
+
+            domTotalNeto.innerText = formatterMain.format(totalGlobalBase);
+            domEquivalencias.innerHTML = `
                 <span>Equivale a:</span> 
-                <span style="color:#1c1c1e">${fCHF.format(totalCHF)}</span> • 
-                <span style="color:#1c1c1e">${fEUR.format(totalEUR)}</span> • 
-                <span style="color:#1c1c1e">${fUSD.format(totalUSD)}</span>
+                <span style="color:#1c1c1e" class="numeric-blur">${fCHF.format(totalCHF)}</span> • 
+                <span style="color:#1c1c1e" class="numeric-blur">${fEUR.format(totalEUR)}</span> • 
+                <span style="color:#1c1c1e" class="numeric-blur">${fUSD.format(totalUSD)}</span>
             `;
 
             if(activos.length > 0) {
@@ -484,18 +549,23 @@
                 liTotal.className = 'asset-item total-row';
                 liTotal.innerHTML = `
                     <div>SUMA TOTAL DEL MES</div>
-                    <div class="total-breakdown-list" style="padding-right: 48px;">
-                        <div style="color: var(--accent); font-size: 20px;">${formatterMain.format(totalGlobalBase)}</div>
-                        <div style="font-size: 14px;">${fCHF.format(totalCHF)} (CHF)</div>
-                        <div style="font-size: 14px;">${fEUR.format(totalEUR)} (EUR)</div>
+                    <div class="total-breakdown-list" style="padding-right: 64px;">
+                        <div style="color: var(--accent); font-size: 20px;" class="numeric-blur">${formatterMain.format(totalGlobalBase)}</div>
+                        <div style="font-size: 14px;" class="numeric-blur">${fCHF.format(totalCHF)} (CHF)</div>
+                        <div style="font-size: 14px;" class="numeric-blur">${fEUR.format(totalEUR)} (EUR)</div>
                     </div>
                 `;
                 lista.appendChild(liTotal);
             }
 
+            // APLICAR FILTROS DE PRIVACIDAD SI CORRESPONDE (FUNCIÓN 4)
+            aplicarFiltroPrivacidad(domTotalNeto);
+            aplicarFiltroPrivacidad(domEquivalencias);
+            document.querySelectorAll('.numeric-blur').forEach(el => aplicarFiltroPrivacidad(el));
+
             document.getElementById('tituloVista').innerText = `Patrimonio Neto - ${mesSel}`;
             renderPie(porCategorias, totalGlobalBase);
-            await renderBarHistorico();
+            await renderAnalisisEvolucionInversion();
         }
 
         function renderPie(datos, total) {
@@ -526,44 +596,74 @@
             });
         }
 
-        async function renderBarHistorico() {
+        // FUNCIÓN 3: NUEVO REPROCESADOR DE GRÁFICO COMBINADO (PATRIMONIO vs DINERO ACUMULADO)
+        async function renderAnalisisEvolucionInversion() {
             const ctx = document.getElementById('barChart').getContext('2d');
             const todosActivos = await db.activos.toArray();
             const historialCompleto = await db.historial.toArray();
             
-            const mesesSet = new Set(historialCompleto.map(h => h.mes));
-            const mesesOrdenados = Array.from(mesesSet).sort();
+            const mesesOrdenados = Array.from(new Set(historialCompleto.map(h => h.mes))).sort();
 
-            const categoriasLista = Object.keys(categoriasColores);
-            const datasets = categoriasLista.map(cat => {
-                return { label: cat, data: [], backgroundColor: categoriasColores[cat], borderRadius: 4 };
-            });
+            let datasetSaldosPatrimonio = [];
+            let datasetAportacionesAcumuladas = [];
+            let capitalAcumuladoAcumulativo = 0;
 
+            // Recorremos de manera cronológica lineal para trazar el crecimiento acumulativo real
             for(let mes of mesesOrdenados) {
-                const fotoCategoriaMes = { "Saving account": 0, "Deposit": 0, "Letras del Tesoro": 0, "3 Säule": 0, "Stocks & ETF VT": 0, "Crypto": 0, "Otros": 0 };
+                let patrimonioTotalMes = 0;
+                let aportacionesDelMes = 0;
+
                 for(let a of todosActivos) {
                     let h = await db.historial.where({ activoId: a.id, mes: mes }).first();
                     if(!h) {
                         const last = await db.historial.where('activoId').equals(a.id).and(x => x.mes < mes).reverse().sortBy('mes');
-                        h = last[0] || { valor: 0 };
+                        h = last[0] || { valor: 0, aporte: 0 };
                     }
-                    fotoCategoriaMes[a.tipo] += h.valor;
+                    patrimonioTotalMes += h.valor;
+                    aportacionesDelMes += (h.aporte || 0);
                 }
-                datasets.forEach(dataset => { dataset.data.push(fotoCategoriaMes[dataset.label]); });
+
+                capitalAcumuladoAcumulativo += aportacionesDelMes;
+
+                datasetSaldosPatrimonio.push(patrimonioTotalMes);
+                // Si el patrimonio cae por debajo del capital acumulado debido al mercado, se mapea correctamente
+                datasetAportacionesAcumuladas.push(capitalAcumuladoAcumulativo);
             }
 
             if(barChartInstance) barChartInstance.destroy();
 
             barChartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: { labels: mesesOrdenados, datasets: datasets },
+                data: {
+                    labels: mesesOrdenados,
+                    datasets: [
+                        {
+                            type: 'bar',
+                            label: 'Patrimonio Neto',
+                            data: datasetSaldosPatrimonio,
+                            backgroundColor: 'rgba(0, 122, 255, 0.45)',
+                            borderColor: '#007aff',
+                            borderWidth: 1.5,
+                            borderRadius: 6
+                        },
+                        {
+                            type: 'line',
+                            label: 'Capital Invertido (Bolsillo)',
+                            data: datasetAportacionesAcumuladas,
+                            borderColor: '#5856d6',
+                            borderWidth: 3,
+                            pointBackgroundColor: '#5856d6',
+                            tension: 0.18,
+                            fill: false
+                        }
+                    ]
+                },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    plugins: { legend: { display: true, position: 'top', labels: { font: { weight: 'bold' } } } },
                     scales: {
-                        y: { stacked: true, grid: { color: '#e5e5ea' }, ticks: { font: { size: 11 } } },
-                        x: { stacked: true, grid: { display: false } }
+                        y: { grid: { color: '#e5e5ea' }, ticks: { font: { size: 11 } } },
+                        x: { grid: { display: false } }
                     }
                 }
             });
