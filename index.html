@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas - Limpieza Automática</title>
+    <title>Mis Finanzas - Agrupación por Entidad</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -294,7 +294,6 @@
 
         function abrirModal() { toggleSidebar(); document.getElementById('nuevoActivoModal').style.display = 'flex'; }
         
-        // NUEVA FUNCIÓN: Limpia todos los campos del modal al cerrar o guardar
         function limpiarFormularioActivo() {
             document.getElementById('nombre').value = "";
             document.getElementById('tipo').selectedIndex = 0;
@@ -355,7 +354,7 @@
             const id = await db.activos.add({ nombre, tipo });
             await db.historial.add({ activoId: id, mes, valor, aporte: 0 });
             
-            cerrarModal(); // Esto ya incluye la llamada a limpiarFormularioActivo()
+            cerrarModal();
             await actualizarUI();
         }
 
@@ -416,6 +415,15 @@
             const activos = await db.activos.toArray();
             const historial = await db.historial.toArray();
             if(activos.length === 0) return;
+            
+            // Lógica de ordenación aplicada también a la exportación para que el Excel guarde el mismo orden visual
+            activos.sort((a, b) => {
+                const prefixA = a.nombre.substring(0, 2).toLowerCase();
+                const prefixB = b.nombre.substring(0, 2).toLowerCase();
+                if (prefixA !== prefixB) return prefixA.localeCompare(prefixB);
+                return a.nombre.localeCompare(b.nombre);
+            });
+
             const mesesUnicos = Array.from(new Set(historial.map(h => h.mes))).sort();
             let cabecera = ["Activo", "Categoria"];
             mesesUnicos.forEach(m => { cabecera.push(`${m}_Saldo`); cabecera.push(`${m}_Aporte`); });
@@ -489,6 +497,17 @@
         async function actualizarUI() {
             const mesSel = document.getElementById('filtroMes').value;
             const activos = await db.activos.toArray();
+            
+            // SOLUCIÓN: Lógica de ordenación por las dos primeras letras (Entidad) + Orden Alfabético secundario
+            activos.sort((a, b) => {
+                const prefixA = a.nombre.substring(0, 2).toLowerCase();
+                const prefixB = b.nombre.substring(0, 2).toLowerCase();
+                if (prefixA !== prefixB) {
+                    return prefixA.localeCompare(prefixB);
+                }
+                return a.nombre.localeCompare(b.nombre);
+            });
+
             const lista = document.getElementById('listaActivos');
             lista.innerHTML = "";
 
