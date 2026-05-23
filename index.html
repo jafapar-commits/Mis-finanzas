@@ -416,7 +416,6 @@
             const historial = await db.historial.toArray();
             if(activos.length === 0) return;
             
-            // Lógica de ordenación aplicada también a la exportación para que el Excel guarde el mismo orden visual
             activos.sort((a, b) => {
                 const prefixA = a.nombre.substring(0, 2).toLowerCase();
                 const prefixB = b.nombre.substring(0, 2).toLowerCase();
@@ -427,7 +426,10 @@
             const mesesUnicos = Array.from(new Set(historial.map(h => h.mes))).sort();
             let cabecera = ["Activo", "Categoria"];
             mesesUnicos.forEach(m => { cabecera.push(`${m}_Saldo`); cabecera.push(`${m}_Aporte`); });
-            let lineas = [cabecera.map(c => `"${c}"`).join(",")];
+            
+            // CORRECCIÓN: Añadimos la directiva sep=, para compatibilidad nativa con Excel en Español
+            let lineas = ["sep=,", cabecera.map(c => `"${c}"`).join(",")];
+            
             activos.forEach(a => {
                 let fila = [`"${a.nombre}"`, `"${a.tipo}"`];
                 mesesUnicos.forEach(m => {
@@ -442,7 +444,11 @@
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
             link.download = `Patrimonio_Matricial_${document.getElementById('filtroMes').value}.csv`;
+            
+            // CORRECCIÓN: Adjuntar al body para garantizar la descarga en todos los navegadores
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
         }
 
         function importarMatrizCSV(input) {
@@ -450,10 +456,21 @@
             const lector = new FileReader();
             lector.onload = async function(e) {
                 const texto = e.target.result; const lineas = texto.split(/\r?\n/); if(lineas.length < 2) return;
-                const cabecera = lineas[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, "").trim());
+                
+                let inicioLineas = 0;
+                let lineaCabecera = lineas[0];
+                
+                // CORRECCIÓN: Ignoramos la línea de configuración 'sep=' de Excel al importar
+                if (lineaCabecera.trim().startsWith("sep=")) {
+                    inicioLineas = 1;
+                    lineaCabecera = lineas[1];
+                }
+                
+                const cabecera = lineaCabecera.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, "").trim());
                 if(cabecera[0] !== "Activo") return;
+                
                 if(confirm("¿Restaurar masivamente desde el archivo?")) {
-                    for(let i = 1; i < lineas.length; i++) {
+                    for(let i = inicioLineas + 1; i < lineas.length; i++) {
                         const linea = lineas[i].trim(); if(!linea) continue;
                         const celdas = linea.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, "").trim());
                         const nombre = celdas[0]; const tipo = celdas[1]; if(!nombre || !tipo) continue;
@@ -498,7 +515,6 @@
             const mesSel = document.getElementById('filtroMes').value;
             const activos = await db.activos.toArray();
             
-            // SOLUCIÓN: Lógica de ordenación por las dos primeras letras (Entidad) + Orden Alfabético secundario
             activos.sort((a, b) => {
                 const prefixA = a.nombre.substring(0, 2).toLowerCase();
                 const prefixB = b.nombre.substring(0, 2).toLowerCase();
