@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas - Control Total</title>
+    <title>Mis Finanzas - Edición Total</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -113,9 +113,13 @@
         .asset-item.total-row { border-top: 2px solid #1c1c1e; font-weight: 700; font-size: 17px; padding-top: 15px; background-color: rgba(0,0,0,0.01); border-bottom: none; align-items: flex-start; }
         .total-breakdown-list { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; }
 
-        .asset-info name { font-weight: 600; font-size: 17px; display: block; }
+        .asset-info { display: flex; flex-direction: column; gap: 2px; max-width: 30%; }
+        .asset-info name { font-weight: 600; font-size: 17px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .asset-info type { font-size: 13px; color: #8e8e93; }
         
+        /* Input para edición inline del nombre */
+        .edit-name-input { font-size: 16px; font-weight: 600; padding: 6px 10px; border: 1px solid var(--accent); border-radius: 8px; background: #f2f2f7; width: 140px; }
+
         .asset-actions { display: flex; align-items: center; gap: 10px; }
         .input-wrapper { display: flex; flex-direction: column; gap: 4px; text-align: right; }
         .input-wrapper label { font-size: 10px; font-weight: 700; color: #8e8e93; text-transform: uppercase; }
@@ -123,6 +127,8 @@
         .update-input.aporte-field { background: #f1fcf4; border-color: #c7eed2; color: #1e7e34; }
         
         .btn-save { background: var(--green); padding: 10px 15px; font-size: 14px; border-radius: 8px; height: 37px; align-self: flex-end; }
+        .btn-inline-action { background: none; color: #8e8e93; font-size: 16px; padding: 5px; border: none; cursor: pointer; }
+        .btn-inline-action:active { color: var(--accent); }
         .btn-del { color: var(--red); background: none; font-size: 18px; padding: 5px; border: none; cursor: pointer; }
 
         .privacy-blur { filter: blur(6px); pointer-events: none; user-select: none; }
@@ -250,6 +256,7 @@
         let rates = { EUR: 1, CHF: 0.96, USD: 1.09, GBP: 0.85 };
         let esModoPrivado = false;
         let filtroGraficoActual = 'categorias';
+        let activoIdEnEdicion = null; // Controla qué activo se está renombrando
 
         function toggleSidebar() {
             const sidebar = document.getElementById('barraLateral');
@@ -346,6 +353,23 @@
             actualizarUI();
         }
 
+        // NUEVA FUNCIÓN: PERMITE MODIFICAR EL NOMBRE DEL ACTIVO
+        async function guardarNuevoNombreActivo(activoId) {
+            const inputNombre = document.getElementById(`edit-name-field-${activoId}`);
+            if(!inputNombre) return;
+            const nuevoNombre = inputNombre.value.trim();
+            if(nuevoNombre === "") return;
+            
+            await db.activos.update(activoId, { nombre: nuevoNombre });
+            activoIdEnEdicion = null; // Cierra el modo edición
+            actualizarUI();
+        }
+
+        function activarModoEdicionNombre(activoId) {
+            activoIdEnEdicion = activoId;
+            actualizarUI();
+        }
+
         async function eliminar(id) {
             if(confirm("¿Eliminar este activo e historial completo?")) {
                 await db.activos.delete(id);
@@ -354,18 +378,16 @@
             }
         }
 
-        // NUEVA FUNCIÓN: BORRADO EXCLUSIVO DEL MES SELECCIONADO
         async function eliminarDatosMesActual() {
             const mesSel = document.getElementById('filtroMes').value;
             if(confirm(`¿Estás seguro de que quieres borrar todos los saldos y aportes introducidos en el mes de ${mesSel}?\n\nLos nombres de tus activos y los datos de otros meses NO se borrarán.`)) {
                 await db.historial.where('mes').equals(mesSel).delete();
-                alert(`Datos del mes ${mesSel} eliminados. El sistema volverá a calcular los arrastres lógicos.`);
+                alert(`Datos del mes ${mesSel} eliminados.`);
                 toggleSidebar();
                 actualizarUI();
             }
         }
 
-        // NUEVA FUNCIÓN: REINICIAR TODA LA APLICACIÓN
         async function reiniciarTodaLaBD() {
             if(confirm("¡ATENCIÓN CRÍTICA!\n\n¿Quieres borrar absolutamente toda la base de datos? Se perderán todos tus activos, configuraciones e historial de forma permanente.")) {
                 if(confirm("Confirma por segunda vez: ¿Estás seguro al 100%?")) {
@@ -460,7 +482,6 @@
             let totalGlobalBase = 0;
             const porCategorias = { "Saving account": 0, "Deposit": 0, "Letras del Tesoro": 0, "3 Säule": 0, "Stocks & ETF VT": 0, "Crypto": 0, "Otros": 0 };
             const divisaActual = localStorage.getItem('divisaSeleccionada');
-            const mapaSimbolos = { 'EUR': '€', 'USD': '$', 'CHF': 'CHF', 'GBP': '£' };
 
             for(let a of activos) {
                 let h = await obtenerSaldoArrastradoInteligente(a.id, mesSel);
@@ -471,11 +492,28 @@
 
                 const li = document.createElement('li');
                 li.className = 'asset-item';
+                
+                // Renderizado condicional: si está en edición, muestra un input de texto
+                let bloqueNombreHtml = "";
+                if(activoIdEnEdicion === a.id) {
+                    bloqueNombreHtml = `
+                        <div class="asset-info" style="max-width:40%; flex-direction:row; gap:6px; align-items:center;">
+                            <input type="text" id="edit-name-field-${a.id}" class="edit-name-input" value="${a.nombre}">
+                            <button class="btn-inline-action" style="color:var(--green);" onclick="guardarNuevoNombreActivo(${a.id})">💾</button>
+                        </div>`;
+                } else {
+                    bloqueNombreHtml = `
+                        <div class="asset-info">
+                            <span style="display:flex; align-items:center; gap:6px;">
+                                <name>${a.nombre}</name>
+                                <button class="btn-inline-action" onclick="activarModoEdicionNombre(${a.id})">✏️</button>
+                            </span>
+                            <type>${a.tipo}</type>
+                        </div>`;
+                }
+
                 li.innerHTML = `
-                    <div class="asset-info">
-                        <name>${a.nombre}</name>
-                        <type>${a.tipo}</type>
-                    </div>
+                    ${bloqueNombreHtml}
                     <div class="asset-actions">
                         <div class="input-wrapper"><label>Saldo</label><input type="number" id="in-val-${a.id}" class="update-input numeric-blur" value="${h.valor.toFixed(2)}"></div>
                         <div class="input-wrapper"><label>Aporte Neto</label><input type="number" id="in-apt-${a.id}" class="update-input aporte-field numeric-blur" value="${valorAporte.toFixed(2)}"></div>
