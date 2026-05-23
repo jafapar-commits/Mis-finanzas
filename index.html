@@ -423,11 +423,16 @@
                 return a.nombre.localeCompare(b.nombre);
             });
 
+            const divisaActual = localStorage.getItem('divisaSeleccionada') || 'EUR';
             const mesesUnicos = Array.from(new Set(historial.map(h => h.mes))).sort();
-            let cabecera = ["Activo", "Categoria"];
-            mesesUnicos.forEach(m => { cabecera.push(`${m}_Saldo`); cabecera.push(`${m}_Aporte`); });
             
-            // CORRECCIÓN: Añadimos la directiva sep=, para compatibilidad nativa con Excel en Español
+            let cabecera = ["Activo", "Categoria"];
+            // ACTUALIZACIÓN: Se concatena el tipo de moneda dinámicamente al título de cada columna
+            mesesUnicos.forEach(m => { 
+                cabecera.push(`${m}_Saldo (${divisaActual})`); 
+                cabecera.push(`${m}_Aporte (${divisaActual})`); 
+            });
+            
             let lineas = ["sep=,", cabecera.map(c => `"${c}"`).join(",")];
             
             activos.forEach(a => {
@@ -445,7 +450,6 @@
             link.href = URL.createObjectURL(blob);
             link.download = `Patrimonio_Matricial_${document.getElementById('filtroMes').value}.csv`;
             
-            // CORRECCIÓN: Adjuntar al body para garantizar la descarga en todos los navegadores
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -460,7 +464,6 @@
                 let inicioLineas = 0;
                 let lineaCabecera = lineas[0];
                 
-                // CORRECCIÓN: Ignoramos la línea de configuración 'sep=' de Excel al importar
                 if (lineaCabecera.trim().startsWith("sep=")) {
                     inicioLineas = 1;
                     lineaCabecera = lineas[1];
@@ -477,7 +480,8 @@
                         let activo = await db.activos.where({ nombre: nombre }).first();
                         let aId = activo ? activo.id : await db.activos.add({ nombre, tipo });
                         for(let j = 2; j < cabecera.length; j += 2) {
-                            const mesCabecera = cabecera[j].replace("_Saldo", "");
+                            // ACTUALIZACIÓN: Obtenemos el mes de forma segura ignorando el texto de la moneda añadido en la cabecera
+                            const mesCabecera = cabecera[j].split('_')[0];
                             const valor = parseFloat(celdas[j]) || 0; const aporte = parseFloat(celdas[j+1]) || 0;
                             let h = await db.historial.where({ activoId: aId, mes: mesCabecera }).first();
                             if(h) await db.historial.update(h.id, { valor, aporte });
