@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas - Panel Inmersivo</title>
+    <title>Mis Finanzas - Máxima Seguridad</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -23,7 +23,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; position: relative; }
 
-        /* BARRA LATERAL DESLIZANTE (ESCONDIDA POR DEFECTO) */
+        /* BARRA LATERAL DESLIZANTE */
         .sidebar { 
             width: 300px; 
             background: var(--panel-bg); 
@@ -35,20 +35,16 @@
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             height: 100vh;
-            position: fixed; /* Flota sobre el contenido */
+            position: fixed;
             top: 0;
-            left: -300px; /* Escondida a la izquierda */
+            left: -300px;
             z-index: 999;
-            transition: left 0.3s cubic-bezier(0.1, 0.9, 0.2, 1); /* Animación iOS fluida */
+            transition: left 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
             box-shadow: 5px 0 25px rgba(0,0,0,0.08);
         }
         
-        /* Clase que activa la visibilidad de la barra lateral */
-        .sidebar.open {
-            left: 0;
-        }
+        .sidebar.open { left: 0; }
         
-        /* Contenedor Principal (Ocupa todo el ancho cuando el menú está cerrado) */
         .main-content { 
             flex: 1; 
             padding: 30px; 
@@ -60,30 +56,18 @@
             width: 100%;
         }
 
-        /* CABECERA CON BOTÓN MENÚ HAMBURGUESA */
-        .top-navbar {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            margin-bottom: 5px;
-        }
+        .top-navbar { display: flex; align-items: center; gap: 15px; margin-bottom: 5px; }
 
         .btn-toggle-menu {
-            background: var(--panel-bg);
-            color: var(--accent);
-            border: 1px solid var(--border);
-            font-size: 24px;
-            padding: 8px 14px;
-            border-radius: 12px;
-            cursor: pointer;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background: var(--panel-bg); color: var(--accent); border: 1px solid var(--border);
+            font-size: 24px; padding: 8px 14px; border-radius: 12px; cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04); display: flex; align-items: center; justify-content: center;
         }
         .btn-toggle-menu:active { opacity: 0.7; }
 
         h2 { font-size: 22px; font-weight: 700; }
+        h3 { font-size: 14px; text-transform: uppercase; color: #8e8e93; font-weight: 700; margin-top: 10px; }
+        
         .form-group { display: flex; flex-direction: column; gap: 8px; }
         label { font-size: 13px; text-transform: uppercase; color: #8e8e93; font-weight: 600; }
         input, select { padding: 14px; border-radius: 12px; font-size: 16px; background: #f2f2f7; border: none; width: 100%; color: var(--text-main); }
@@ -91,13 +75,14 @@
         button { background: var(--accent); color: white; border: none; padding: 14px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; }
         button:active { opacity: 0.8; }
         
-        .btn-add-trigger { background: #34c759; padding: 15px; font-size: 16px; width: 100%; margin-top: 5px; }
+        .btn-add-trigger { background: #34c759; padding: 15px; font-size: 16px; width: 100%; }
+        
+        /* Botones secundarios para Copia de Seguridad */
+        .btn-secundario { background: #e5e5ea; color: #007aff; padding: 10px; font-size: 14px; border-radius: 10px; text-align: center; }
+        .btn-secundario:active { background: #d1d1d6; }
 
         .dashboard-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        
-        @media (max-width: 1024px) {
-            .dashboard-row { grid-template-columns: 1fr; }
-        }
+        @media (max-width: 1024px) { .dashboard-row { grid-template-columns: 1fr; } }
 
         .card { background: var(--panel-bg); padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); display: flex; flex-direction: column; }
         
@@ -122,13 +107,7 @@
         .btn-save { background: #34c759; padding: 8px 15px; font-size: 14px; border-radius: 8px; }
         .btn-del { color: #ff3b30; background: none; font-size: 18px; padding: 5px; }
 
-        /* TAP OVERLAY: Capa oscura trasera para cerrar el menú si tocas fuera */
-        .sidebar-overlay { 
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-            background: rgba(0,0,0,0.15); display: none; z-index: 998; 
-        }
-
-        /* MODAL / PESTAÑA DE NUEVO ACTIVO */
+        .sidebar-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.15); display: none; z-index: 998; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 20px; }
         .modal-card { background: var(--panel-bg); padding: 30px; border-radius: 24px; width: 100%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.15); display: flex; flex-direction: column; gap: 15px; position: relative; max-height: 90vh; overflow-y: auto; }
         .modal-close { position: absolute; top: 20px; right: 20px; background: none; color: #8e8e93; font-size: 20px; cursor: pointer; padding: 5px; border: none; }
@@ -142,9 +121,11 @@
 
     <div class="sidebar" id="barraLateral">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-            <h2>Filtros y Ajustes</h2>
-            <button style="background: none; color: var(--accent); font-size: 24px;" onclick="toggleSidebar()">✕</button>
+            <h2>Menú y Ajustes</h2>
+            <button style="background: none; color: var(--accent); font-size: 24px; border:none;" onclick="toggleSidebar()">✕</button>
         </div>
+        
+        <h3>Visualización</h3>
         <div class="form-group">
             <label>Mes de análisis</label>
             <input type="month" id="filtroMes" onchange="actualizarUI()">
@@ -160,8 +141,19 @@
         </div>
         
         <hr>
-
+        
+        <h3>Acciones</h3>
         <button class="btn-add-trigger" onclick="abrirModal()">＋ Nuevo Activo</button>
+        
+        <hr>
+
+        <h3>Copia de Seguridad</h3>
+        <button class="btn-secundario" onclick="exportarAExcel()">📥 Guardar Datos (Excel/CSV)</button>
+        
+        <label class="btn-secundario" style="cursor: pointer; font-weight:600;">
+            📤 Recuperar desde archivo
+            <input type="file" id="importarFile" accept=".csv" style="display: none;" onchange="importarDesdeExcel(this)">
+        </label>
     </div>
 
     <div class="main-content">
@@ -226,25 +218,17 @@
     <script>
         let rates = { EUR: 1, CHF: 0.96, USD: 1.09, GBP: 0.85 };
 
-        // CONTROL DE LA BARRA LATERAL DESLIZANTE
         function toggleSidebar() {
             const sidebar = document.getElementById('barraLateral');
             const overlay = document.getElementById('capaFondoSidebar');
-            
             if(sidebar.classList.contains('open')) {
-                sidebar.classList.remove('open');
-                overlay.style.display = 'none';
+                sidebar.classList.remove('open'); overlay.style.display = 'none';
             } else {
-                sidebar.classList.add('open');
-                overlay.style.display = 'block';
+                sidebar.classList.add('open'); overlay.style.display = 'block';
             }
         }
 
-        // CONTROL DEL MODAL DE ENTRADA
-        function abrirModal() { 
-            toggleSidebar(); // Cierra el menú al abrir la ventana flotante
-            document.getElementById('nuevoActivoModal').style.display = 'flex'; 
-        }
+        function abrirModal() { toggleSidebar(); document.getElementById('nuevoActivoModal').style.display = 'flex'; }
         function cerrarModal() { document.getElementById('nuevoActivoModal').style.display = 'none'; }
         function cerrarModalFuera(e) { if(e.target.id === 'nuevoActivoModal') cerrarModal(); }
 
@@ -253,9 +237,7 @@
                 const res = await fetch('https://open.er-api.com/v6/latest/EUR');
                 const data = await res.json();
                 if(data && data.rates) rates = data.rates;
-            } catch (e) {
-                console.log("Modo offline.");
-            }
+            } catch (e) { console.log("Modo offline."); }
         }
 
         const hoy = new Date();
@@ -318,6 +300,91 @@
                 await db.historial.where('activoId').equals(id).delete();
                 actualizarUI();
             }
+        }
+
+        // ==========================================
+        // NUEVAS FUNCIONES DE COPIA DE SEGURIDAD (CSV)
+        // ==========================================
+        async function exportarAExcel() {
+            const activos = await db.activos.toArray();
+            const historial = await db.historial.toArray();
+            
+            if(activos.length === 0) { alert("No hay datos para exportar."); return; }
+
+            // Crear cabecera del archivo Excel/CSV
+            let csvContenido = "data:text/csv;charset=utf-8,";
+            csvContenido += "NombreActivo,Categoria,Mes,Valor\n";
+
+            historial.forEach(h => {
+                const activo = activos.find(a => a.id === h.activoId);
+                if(activo) {
+                    // Evitar problemas de comas en nombres escapando las celdas
+                    csvContenido += `"${activo.nombre}","${activo.tipo}","${h.mes}",${h.valor}\n`;
+                }
+            });
+
+            // Trigger nativo de descarga para la app Archivos de iOS
+            const encodedUri = encodeURI(csvContenido);
+            const link = document.createElement("a");
+            link.setAttribute("href", encodedUri);
+            link.setAttribute("download", `Copia_Patrimonio_${document.getElementById('filtroMes').value}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function importarDesdeExcel(input) {
+            const file = input.files[0];
+            if (!file) return;
+
+            const lector = new FileReader();
+            lector.onload = async function(e) {
+                const texto = e.target.result;
+                const lineas = texto.split("\n");
+                
+                if(lineas.length < 2) { alert("Archivo no válido"); return; }
+                
+                if(confirm("Se añadirán los datos del archivo a tu panel actual. ¿Continuar?")) {
+                    // Recorrer líneas omitiendo la cabecera
+                    for(let i = 1; i < lineas.length; i++) {
+                        const linea = lineas[i].trim();
+                        if(!linea) continue;
+
+                        // Separar celdas respetando las comillas
+                        const celdas = linea.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                        if(celdas.length < 4) continue;
+
+                        const nombre = celdas[0].replace(/"/g, "");
+                        const tipo = celdas[1].replace(/"/g, "");
+                        const mes = celdas[2].replace(/"/g, "");
+                        const valor = parseFloat(celdas[3]);
+
+                        if(!nombre || isNaN(valor)) continue;
+
+                        // Comprobar si el activo ya existe por nombre
+                        let activo = await db.activos.where({ nombre: nombre }).first();
+                        let activoId;
+                        if(!activo) {
+                            activoId = await db.activos.add({ nombre, tipo });
+                        } else {
+                            activoId = activo.id;
+                        }
+
+                        // Comprobar si ya existe registro en ese mes específico para actualizarlo o crearlo
+                        let h = await db.historial.where({ activoId: activoId, mes: mes }).first();
+                        if(h) {
+                            await db.historial.update(h.id, { valor: valor });
+                        } else {
+                            await db.historial.add({ activoId: activoId, mes, valor });
+                        }
+                    }
+                    alert("¡Copia de seguridad importada con éxito!");
+                    toggleSidebar();
+                    actualizarUI();
+                }
+            };
+            lector.readAsText(file);
+            input.value = ""; // Reset del input file
         }
 
         async function actualizarUI() {
