@@ -450,7 +450,10 @@
             lector.onload = async function(e) {
                 const texto = e.target.result; const lineas = texto.split(/\r?\n/); if(lineas.length < 2) return;
                 const cabecera = lineas[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, "").trim());
-                if(cabecera[0] !== "Asset") return;
+                
+                // CORRECCIÓN DE RETROCOMPATIBILIDAD: Acepta "Asset" (EN) o "Activo" (ES)
+                if(cabecera[0] !== "Asset" && cabecera[0] !== "Activo") return;
+                
                 if(confirm("Bulk restore records from file?")) {
                     for(let i = 1; i < lineas.length; i++) {
                         const linea = lineas[i].trim(); if(!linea) continue;
@@ -459,7 +462,8 @@
                         let activo = await db.activos.where({ nombre: nombre }).first();
                         let aId = activo ? activo.id : await db.activos.add({ nombre, tipo });
                         for(let j = 2; j < cabecera.length; j += 2) {
-                            const mesCabecera = cabecera[j].replace("_Balance", "");
+                            // Limpia sufijos tanto en inglés (_Balance, _Contribution) como en español (_Saldo, _Aporte)
+                            const mesCabecera = cabecera[j].replace("_Balance", "").replace("_Saldo", "");
                             const valor = parseFloat(celdas[j]) || 0; const aporte = parseFloat(celdas[j+1]) || 0;
                             let h = await db.historial.where({ activoId: aId, mes: mesCabecera }).first();
                             if(h) await db.historial.update(h.id, { valor, aporte });
