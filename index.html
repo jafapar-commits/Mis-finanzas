@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Mis Finanzas - Agrupación por Entidad</title>
+    <title>My Finances - Grouping by Entity</title>
     
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -25,7 +25,7 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; position: relative; }
 
-        /* BARRA LATERAL DESLIZANTE */
+        /* SLIDING SIDEBAR */
         .sidebar { 
             width: 300px; 
             background: var(--panel-bg); 
@@ -145,40 +145,40 @@
 
     <div class="sidebar" id="barraLateral">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
-            <h2>Menú y Ajustes</h2>
+            <h2>Menu & Settings</h2>
             <button style="background: none; color: var(--accent); font-size: 24px; border:none;" onclick="toggleSidebar()">✕</button>
         </div>
         
-        <h3>Visualización</h3>
+        <h3>Display</h3>
         <div class="form-group">
-            <label>Mes de análisis</label>
+            <label>Analysis Month</label>
             <input type="month" id="filtroMes" onchange="actualizarUI()">
         </div>
         <div class="form-group">
-            <label>Moneda Principal</label>
+            <label>Primary Currency</label>
             <select id="selectorDivisa" onchange="cambiarDivisa()">
                 <option value="EUR">Euros (€)</option>
-                <option value="CHF">Francos Suizos (CHF)</option>
-                <option value="USD">Dólares ($)</option>
-                <option value="GBP">Libras (£)</option>
+                <option value="CHF">Swiss Francs (CHF)</option>
+                <option value="USD">US Dollars ($)</option>
+                <option value="GBP">British Pounds (£)</option>
             </select>
         </div>
         <hr>
-        <h3>Acciones</h3>
-        <button class="btn-add-trigger" onclick="abrirModal()">＋ Nuevo Activo</button>
-        <button class="btn-danger" style="margin-top: 5px;" onclick="eliminarDatosMesActual()">🗑 Borrar Datos de Este Mes</button>
+        <h3>Actions</h3>
+        <button class="btn-add-trigger" onclick="abrirModal()">＋ New Asset</button>
+        <button class="btn-danger" style="margin-top: 5px;" onclick="eliminarDatosMesActual()">🗑 Delete This Month's Data</button>
         
         <hr>
-        <h3>Copia de Seguridad</h3>
-        <button class="btn-secundario" onclick="exportarMatrizCSV()">📥 Guardar Datos (Excel/CSV)</button>
+        <h3>Backup</h3>
+        <button class="btn-secundario" onclick="exportarMatrizCSV()">📥 Save Data (Excel/CSV)</button>
         <label class="btn-secundario" style="cursor: pointer; display: block;">
-            📤 Recuperar desde archivo
+            📤 Restore from file
             <input type="file" id="importarFile" accept=".csv" style="display: none;" onchange="importarMatrizCSV(this)">
         </label>
         
         <hr>
-        <h3>Zona Crítica</h3>
-        <button class="btn-danger" style="background: rgba(255, 59, 48, 0.05);" onclick="reiniciarTodaLaBD()">⚠ Reiniciar Toda la App</button>
+        <h3>Critical Zone</h3>
+        <button class="btn-danger" style="background: rgba(255, 59, 48, 0.05);" onclick="reiniciarTodaLaBD()">⚠ Reset Whole App</button>
     </div>
 
     <div class="main-content">
@@ -187,18 +187,18 @@
                 <button class="btn-navbar" onclick="toggleSidebar()">☰</button>
                 <button class="btn-navbar" id="btnPrivacidad" onclick="togglePrivacidad()">👁</button>
             </div>
-            <h2 id="tituloVista" style="font-size: 24px;">Patrimonio Neto</h2>
+            <h2 id="tituloVista" style="font-size: 24px;">Net Worth</h2>
         </div>
 
         <header class="header-patrimonio">
             <div class="total-amount" id="totalNeto">0,00 €</div>
             <div id="variacionMensualBadge" class="delta-badge delta-neutral">0.00%</div>
-            <div class="sub-amounts" id="equivalenciasHeader">Cargando tipos de cambio...</div>
+            <div class="sub-amounts" id="equivalenciasHeader">Loading exchange rates...</div>
         </header>
 
         <div class="dashboard-row">
             <div class="card">
-                <label style="font-weight: 600; color: #8e8e93;">DISTRIBUCIÓN ACTUAL (%)</label>
+                <label style="font-weight: 600; color: #8e8e93;">CURRENT ALLOCATION (%)</label>
                 <div class="chart-container">
                     <canvas id="pieChart"></canvas>
                 </div>
@@ -206,10 +206,10 @@
             
             <div class="card">
                 <div class="chart-header-row">
-                    <label id="tituloGraficoHistorico" style="font-weight: 600; color: #8e8e93;">EVOLUCIÓN PATRIMONIAL</label>
+                    <label id="tituloGraficoHistorico" style="font-weight: 600; color: #8e8e93;">NET WORTH EVOLUTION</label>
                     <div class="chart-selector-tabs">
-                        <button class="tab-btn active-tab" id="btnTabCategorias" onclick="cambiarFiltroGrafico('categorias')">Categorías</button>
-                        <button class="tab-btn" id="btnTabRendimiento" onclick="cambiarFiltroGrafico('rendimiento')">Rendimiento</button>
+                        <button class="tab-btn active-tab" id="btnTabCategorias" onclick="cambiarFiltroGrafico('categorias')">Categories</button>
+                        <button class="tab-btn" id="btnTabRendimiento" onclick="cambiarFiltroGrafico('rendimiento')">Performance</button>
                     </div>
                 </div>
                 <div class="chart-container">
@@ -218,21 +218,21 @@
             </div>
         </div>
 
-        <h2>Detalle de saldos mensuales</h2>
+        <h2>Monthly Balance Breakdown</h2>
         <ul class="assets-list" id="listaActivos"></ul>
     </div>
 
     <div class="modal-overlay" id="nuevoActivoModal" onclick="cerrarModalFuera(event)">
         <div class="modal-card">
             <button class="modal-close" onclick="cerrarModal()">✕</button>
-            <h2 style="margin-bottom: 10px;">Añadir Nuevo Activo</h2>
+            <h2 style="margin-bottom: 10px;">Add New Asset</h2>
             
             <div class="form-group">
-                <label>Nombre del activo</label>
-                <input type="text" id="nombre" placeholder="Ej: Cuenta Suiza">
+                <label>Asset Name</label>
+                <input type="text" id="nombre" placeholder="e.g., Swiss Account">
             </div>
             <div class="form-group">
-                <label>Categoría</label>
+                <label>Category</label>
                 <select id="tipo">
                     <option value="Saving account">Saving account</option>
                     <option value="Deposit">Deposit</option>
@@ -244,10 +244,10 @@
                 </select>
             </div>
             <div class="form-group">
-                <label id="labelBalance">Valor Inicial</label>
+                <label id="labelBalance">Initial Value</label>
                 <input type="number" id="balance" placeholder="0.00" step="0.01">
             </div>
-            <button style="margin-top: 10px;" onclick="crearActivo()">Guardar en el Panel</button>
+            <button style="margin-top: 10px;" onclick="crearActivo()">Save to Dashboard</button>
         </div>
     </div>
 
@@ -286,8 +286,8 @@
             document.getElementById('btnTabRendimiento').classList.toggle('active-tab', tipo === 'rendimiento');
             
             const titulo = document.getElementById('tituloGraficoHistorico');
-            if(tipo === 'categorias') titulo.innerText = "EVOLUCIÓN MENSUAL POR CATEGORÍAS";
-            else titulo.innerText = "PATRIMONIO TOTAL vs CAPITAL INVERTIDO";
+            if(tipo === 'categorias') titulo.innerText = "MONTHLY EVOLUTION BY CATEGORIES";
+            else titulo.innerText = "TOTAL NET WORTH vs INVESTED CAPITAL";
             
             renderAnalisisEvolucionInversion();
         }
@@ -312,7 +312,7 @@
                 const res = await fetch('https://open.er-api.com/v6/latest/EUR');
                 const data = await res.json();
                 if(data && data.rates) rates = data.rates;
-            } catch (e) { console.log("Modo offline."); }
+            } catch (e) { console.log("Offline mode."); }
         }
 
         const hoy = new Date();
@@ -334,7 +334,7 @@
 
         function inicializarFormateador(divisa) {
             const localesMap = { 'EUR': 'es-ES', 'USD': 'en-US', 'CHF': 'de-CH', 'GBP': 'en-GB' };
-            return new Intl.NumberFormat(localesMap[divisa] || 'es-ES', { style: 'currency', currency: divisa });
+            return new Intl.NumberFormat(localesMap[divisa] || 'en-US', { style: 'currency', currency: divisa });
         }
 
         function cambiarDivisa() {
@@ -383,7 +383,7 @@
         }
 
         async function eliminar(id) {
-            if(confirm("¿Eliminar este activo e historial completo?")) {
+            if(confirm("Delete this asset and its complete history?")) {
                 await db.activos.delete(id);
                 await db.historial.where('activoId').equals(id).delete();
                 actualizarUI();
@@ -392,20 +392,20 @@
 
         async function eliminarDatosMesActual() {
             const mesSel = document.getElementById('filtroMes').value;
-            if(confirm(`¿Estás seguro de que quieres borrar todos los saldos y aportes introducidos en el mes de ${mesSel}?\n\nLos nombres de tus activos y los datos de otros meses NO se borrarán.`)) {
+            if(confirm(`Are you sure you want to delete all balances and net contributions entered in ${mesSel}?\n\nYour asset names and other months' data will NOT be deleted.`)) {
                 await db.historial.where('mes').equals(mesSel).delete();
-                alert(`Datos del mes ${mesSel} eliminados.`);
+                alert(`Data for ${mesSel} has been deleted.`);
                 toggleSidebar();
                 actualizarUI();
             }
         }
 
         async function reiniciarTodaLaBD() {
-            if(confirm("¡ATENCIÓN CRÍTICA!\n\n¿Quieres borrar absolutamente toda la base de datos? Se perderán todos tus activos, configuraciones e historial de forma permanente.")) {
-                if(confirm("Confirma por segunda vez: ¿Estás seguro al 100%?")) {
+            if(confirm("CRITICAL WARNING!\n\nDo you want to permanently clear the entire database? You will lose all your assets, settings, and historical records.")) {
+                if(confirm("Confirm a second time: Are you 100% sure?")) {
                     await db.activos.clear();
                     await db.historial.clear();
-                    alert("Aplicación restaurada de fábrica con éxito.");
+                    alert("Application successfully restored to factory settings.");
                     window.location.reload();
                 }
             }
@@ -424,8 +424,8 @@
             });
 
             const mesesUnicos = Array.from(new Set(historial.map(h => h.mes))).sort();
-            let cabecera = ["Activo", "Categoria"];
-            mesesUnicos.forEach(m => { cabecera.push(`${m}_Saldo`); cabecera.push(`${m}_Aporte`); });
+            let cabecera = ["Asset", "Category"];
+            mesesUnicos.forEach(m => { cabecera.push(`${m}_Balance`); cabecera.push(`${m}_Contribution`); });
             let lineas = [cabecera.map(c => `"${c}"`).join(",")];
             activos.forEach(a => {
                 let fila = [`"${a.nombre}"`, `"${a.tipo}"`];
@@ -440,7 +440,7 @@
             const blob = new Blob([csvTexto], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             link.href = URL.createObjectURL(blob);
-            link.download = `Patrimonio_Matricial_${document.getElementById('filtroMes').value}.csv`;
+            link.download = `NetWorth_Matrix_${document.getElementById('filtroMes').value}.csv`;
             link.click();
         }
 
@@ -450,8 +450,8 @@
             lector.onload = async function(e) {
                 const texto = e.target.result; const lineas = texto.split(/\r?\n/); if(lineas.length < 2) return;
                 const cabecera = lineas[0].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, "").trim());
-                if(cabecera[0] !== "Activo") return;
-                if(confirm("¿Restaurar masivamente desde el archivo?")) {
+                if(cabecera[0] !== "Asset") return;
+                if(confirm("Bulk restore records from file?")) {
                     for(let i = 1; i < lineas.length; i++) {
                         const linea = lineas[i].trim(); if(!linea) continue;
                         const celdas = linea.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, "").trim());
@@ -459,7 +459,7 @@
                         let activo = await db.activos.where({ nombre: nombre }).first();
                         let aId = activo ? activo.id : await db.activos.add({ nombre, tipo });
                         for(let j = 2; j < cabecera.length; j += 2) {
-                            const mesCabecera = cabecera[j].replace("_Saldo", "");
+                            const mesCabecera = cabecera[j].replace("_Balance", "");
                             const valor = parseFloat(celdas[j]) || 0; const aporte = parseFloat(celdas[j+1]) || 0;
                             let h = await db.historial.where({ activoId: aId, mes: mesCabecera }).first();
                             if(h) await db.historial.update(h.id, { valor, aporte });
@@ -473,18 +473,14 @@
         }
 
         async function obtenerSaldoArrastradoInteligente(activoId, mesActual) {
-            // 1. Si ya existe un registro exacto para este mes, lo usamos
             const regActual = await db.historial.where({ activoId, mes: mesActual }).first();
             if(regActual) return regActual;
 
-            // 2. Si no existe, buscamos el historial anterior ordenado de más nuevo a más viejo
             const historicosAnteriores = await db.historial.where('activoId').equals(activoId).and(x => x.mes < mesActual).reverse().sortBy('mes');
             if(historicosAnteriores.length > 0) {
-                // El saldo inteligente al inicio de este mes es: Saldo anterior + Aporte anterior
                 const ultimoRegistro = historicosAnteriores[0];
                 return { valor: (ultimoRegistro.valor || 0) + (ultimoRegistro.aporte || 0), aporte: 0 };
             }
-            // 3. Si es el primer mes absoluto sin historial
             return { valor: 0, aporte: 0 };
         }
 
@@ -548,8 +544,8 @@
                 li.innerHTML = `
                     ${bloqueNombreHtml}
                     <div class="asset-actions">
-                        <div class="input-wrapper"><label>Saldo</label><input type="number" id="in-val-${a.id}" class="update-input numeric-blur" value="${h.valor.toFixed(2)}"></div>
-                        <div class="input-wrapper"><label>Aporte Neto</label><input type="number" id="in-apt-${a.id}" class="update-input aporte-field numeric-blur" value="${valorAporte.toFixed(2)}"></div>
+                        <div class="input-wrapper"><label>Balance</label><input type="number" id="in-val-${a.id}" class="update-input numeric-blur" value="${h.valor.toFixed(2)}"></div>
+                        <div class="input-wrapper"><label>Net Contrib.</label><input type="number" id="in-apt-${a.id}" class="update-input aporte-field numeric-blur" value="${valorAporte.toFixed(2)}"></div>
                         <button class="btn-save" onclick="actualizarValor(${a.id}, parseFloat(document.getElementById('in-val-${a.id}').value), parseFloat(document.getElementById('in-apt-${a.id}').value))">✓</button>
                         <button class="btn-del" onclick="eliminar(${a.id})">✕</button>
                     </div>
@@ -567,10 +563,10 @@
             if(totalMesAnterior > 0) {
                 const diffNeto = totalGlobalBase - totalMesAnterior;
                 const porcentaje = (diffNeto / totalMesAnterior) * 100;
-                badgeVariacion.innerText = `${diffNeto >= 0 ? "▲" : "▼"} ${formatterMain.format(diffNeto)} (${porcentaje.toFixed(2)}%) vs mes anterior`;
+                badgeVariacion.innerText = `${diffNeto >= 0 ? "▲" : "▼"} ${formatterMain.format(diffNeto)} (${porcentaje.toFixed(2)}%) vs last month`;
                 badgeVariacion.className = `delta-badge ${diffNeto >= 0 ? 'delta-positive' : 'delta-negative'}`;
             } else {
-                badgeVariacion.innerText = "● Primer mes del registro"; badgeVariacion.className = "delta-badge delta-neutral";
+                badgeVariacion.innerText = "● Initial registration month"; badgeVariacion.className = "delta-badge delta-neutral";
             }
 
             const tasaAMedida = rates[divisaActual] || 1;
@@ -581,17 +577,17 @@
             const domTotalNeto = document.getElementById('totalNeto');
             const domEquivalencias = document.getElementById('equivalenciasHeader');
             domTotalNeto.innerText = formatterMain.format(totalGlobalBase);
-            domEquivalencias.innerHTML = `<span>Equivale a:</span> <span class="numeric-blur">${fCHF.format(totalCHF)}</span> • <span class="numeric-blur">${fEUR.format(totalEUR)}</span> • <span class="numeric-blur">${fUSD.format(totalUSD)}</span>`;
+            domEquivalencias.innerHTML = `<span>Equivalent to:</span> <span class="numeric-blur">${fCHF.format(totalCHF)}</span> • <span class="numeric-blur">${fEUR.format(totalEUR)}</span> • <span class="numeric-blur">${fUSD.format(totalUSD)}</span>`;
 
             if(activos.length > 0) {
                 const liTotal = document.createElement('li'); liTotal.className = 'asset-item total-row';
-                liTotal.innerHTML = `<div>SUMA TOTAL DEL MES</div><div class="total-breakdown-list" style="padding-right: 64px;"><div style="color:var(--accent); font-size:20px;" class="numeric-blur">${formatterMain.format(totalGlobalBase)}</div></div>`;
+                liTotal.innerHTML = `<div>TOTAL MONTHLY SUM</div><div class="total-breakdown-list" style="padding-right: 64px;"><div style="color:var(--accent); font-size:20px;" class="numeric-blur">${formatterMain.format(totalGlobalBase)}</div></div>`;
                 lista.appendChild(liTotal);
             }
 
             aplicarFiltroPrivacidad(domTotalNeto); aplicarFiltroPrivacidad(domEquivalencias);
             document.querySelectorAll('.numeric-blur').forEach(el => aplicarFiltroPrivacidad(el));
-            document.getElementById('tituloVista').innerText = `Patrimonio Neto - ${mesSel}`;
+            document.getElementById('tituloVista').innerText = `Net Worth - ${mesSel}`;
             
             renderPie(porCategorias, totalGlobalBase);
             await renderAnalisisEvolucionInversion();
@@ -617,7 +613,6 @@
             const historialCompleto = await db.historial.toArray();
             const mesSeleccionadoUI = document.getElementById('filtroMes').value;
 
-            // Inyectamos a la fuerza el mes de análisis actual para que aparezca linealmente en las barras históricas
             let setMeses = new Set(historialCompleto.map(h => h.mes));
             if (mesSeleccionadoUI) setMeses.add(mesSeleccionadoUI);
             const mesesOrdenados = Array.from(setMeses).sort();
@@ -671,8 +666,8 @@
                     data: {
                         labels: mesesOrdenados,
                         datasets: [
-                            { type: 'bar', label: 'Patrimonio Neto', data: datasetSaldosPatrimonio, backgroundColor: 'rgba(0, 122, 255, 0.45)', borderColor: '#007aff', borderWidth: 1.5, borderRadius: 6 },
-                            { type: 'line', label: 'Capital Invertido', data: datasetAportacionesAcumuladas, borderColor: '#5856d6', borderWidth: 3, pointBackgroundColor: '#5856d6', tension: 0.15, fill: false }
+                            { type: 'bar', label: 'Net Worth', data: datasetSaldosPatrimonio, backgroundColor: 'rgba(0, 122, 255, 0.45)', borderColor: '#007aff', borderWidth: 1.5, borderRadius: 6 },
+                            { type: 'line', label: 'Invested Capital', data: datasetAportacionesAcumuladas, borderColor: '#5856d6', borderWidth: 3, pointBackgroundColor: '#5856d6', tension: 0.15, fill: false }
                         ]
                     },
                     options: {
